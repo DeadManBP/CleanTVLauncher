@@ -4,6 +4,9 @@
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
+    <!-- For the optional custom wallpaper file in Downloads / Pictures. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <!-- Android 11+ package visibility: without this, queryIntentActivities
          only sees a handful of system apps and misses every streaming app.
          A launcher MUST declare the intents it queries for. -->
