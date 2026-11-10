@@ -82,6 +82,9 @@ class MainActivity : Activity() {
                 val key = ri.activityInfo.packageName + "/" + ri.activityInfo.name
                 if (!seen.add(key)) continue
                 if (ri.activityInfo.packageName == packageName) continue
+                // Skip apps disabled by the user (e.g. YouTube Music from debloat batch 2).
+                if (!ri.activityInfo.applicationInfo.enabled) continue
+                if (!ri.activityInfo.enabled) continue
                 val label = ri.loadLabel(pm).toString()
                 val icon = ri.activityInfo.loadIcon(pm)
                 val launch = Intent(Intent.ACTION_MAIN).apply {
