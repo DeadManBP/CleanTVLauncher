@@ -15,6 +15,7 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.BaseAdapter
 import android.widget.GridView
 import android.widget.ImageView
@@ -58,6 +59,12 @@ class MainActivity : Activity() {
         wallpaperView = findViewById(R.id.wallpaper)
         wallpaperDim = findViewById(R.id.wallpaper_dim)
         grid.adapter = AppAdapter(loadApps())
+        // D-pad center on a TV remote fires GridView's item click, NOT the
+        // item view's own click listener — that is why taps did nothing in v1.2.
+        grid.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
+            val app = (grid.adapter as AppAdapter).getItem(position)
+            startActivity(app.launch)
+        }
         maybeRequestStoragePermission()
         loadWallpaper()
         clockHandler.post(clockTick)
@@ -150,12 +157,7 @@ class MainActivity : Activity() {
                 if (!ri.activityInfo.applicationInfo.enabled) continue
                 if (!ri.activityInfo.enabled) continue
                 val label = ri.loadLabel(pm).toString()
-                // Wide TV banner art when the app has it, square icon otherwise.
-                val icon = try {
-                    ri.activityInfo.loadBanner(pm)
-                } catch (e: Exception) {
-                    null
-                } ?: ri.activityInfo.loadIcon(pm)
+                val icon = ri.activityInfo.loadIcon(pm)
                 val launch = Intent(Intent.ACTION_MAIN).apply {
                     setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
                     addCategory(Intent.CATEGORY_LAUNCHER)
