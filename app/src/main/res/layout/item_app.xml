@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="180dp"
-    android:layout_height="190dp"
+    android:layout_width="320dp"
+    android:layout_height="210dp"
     android:background="@drawable/app_focus"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="8dp">
 
     <ImageView
         android:id="@+id/app_icon"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:scaleType="fitCenter" />
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:scaleType="centerCrop" />
 
     <TextView
         android:id="@+id/app_label"
@@ -22,6 +22,6 @@
         android:gravity="center"
         android:maxLines="1"
         android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:textSize="18sp" />
 
 </LinearLayout>
