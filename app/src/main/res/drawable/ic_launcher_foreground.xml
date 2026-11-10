@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Red TV body -->
+    <path
+        android:fillColor="#C8102E"
+        android:pathData="M18,32 h72 a8,8 0 0 1 8,8 v32 a8,8 0 0 1 -8,8 h-72 a8,8 0 0 1 -8,-8 v-32 a8,8 0 0 1 8,-8 z" />
+    <!-- Dark screen -->
+    <path
+        android:fillColor="#0B0B0B"
+        android:pathData="M26,40 h56 v32 h-56 z" />
+    <!-- White play triangle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,48 L70,56 L48,64 z" />
+    <!-- Antenna -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M40,32 L30,18 M68,32 L78,18" />
+</vector>
