@@ -1,11 +1,14 @@
 package ca.cleantvlauncher
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -16,6 +19,7 @@ import android.widget.BaseAdapter
 import android.widget.GridView
 import android.widget.ImageView
 import android.widget.TextView
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -29,6 +33,8 @@ class MainActivity : Activity() {
 
     private lateinit var grid: GridView
     private lateinit var clock: TextView
+    private lateinit var wallpaperView: ImageView
+    private lateinit var wallpaperDim: View
     private val clockHandler = Handler(Looper.getMainLooper())
     private val clockTick = object : Runnable {
         override fun run() {
@@ -49,7 +55,11 @@ class MainActivity : Activity() {
         setContentView(R.layout.activity_main)
         grid = findViewById(R.id.app_grid)
         clock = findViewById(R.id.clock)
+        wallpaperView = findViewById(R.id.wallpaper)
+        wallpaperDim = findViewById(R.id.wallpaper_dim)
         grid.adapter = AppAdapter(loadApps())
+        maybeRequestStoragePermission()
+        loadWallpaper()
         clockHandler.post(clockTick)
     }
 
@@ -57,6 +67,60 @@ class MainActivity : Activity() {
         super.onResume()
         // Refresh in case apps changed while we were away.
         grid.adapter = AppAdapter(loadApps())
+        loadWallpaper()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        loadWallpaper()
+    }
+
+    private fun maybeRequestStoragePermission() {
+        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 1)
+        }
+    }
+
+    /**
+     * Custom wallpaper: if a file named cleantv-wallpaper.jpg (or .png) sits in
+     * Downloads or Pictures, it becomes the background. Otherwise the built-in
+     * gunmetal gradient shows. Checked on every resume, so swapping the file
+     * and pressing Home picks it up.
+     */
+    private fun loadWallpaper() {
+        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            wallpaperView.visibility = View.GONE
+            wallpaperDim.visibility = View.GONE
+            return
+        }
+        val dirs = listOf(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        )
+        for (dir in dirs) {
+            for (name in listOf("cleantv-wallpaper.jpg", "cleantv-wallpaper.png")) {
+                val f = File(dir, name)
+                if (f.exists()) {
+                    val bmp = BitmapFactory.decodeFile(f.absolutePath)
+                    if (bmp != null) {
+                        wallpaperView.setImageBitmap(bmp)
+                        wallpaperView.visibility = View.VISIBLE
+                        wallpaperDim.visibility = View.VISIBLE
+                        return
+                    }
+                }
+            }
+        }
+        wallpaperView.visibility = View.GONE
+        wallpaperDim.visibility = View.GONE
     }
 
     override fun onDestroy() {
@@ -86,7 +150,12 @@ class MainActivity : Activity() {
                 if (!ri.activityInfo.applicationInfo.enabled) continue
                 if (!ri.activityInfo.enabled) continue
                 val label = ri.loadLabel(pm).toString()
-                val icon = ri.activityInfo.loadIcon(pm)
+                // Wide TV banner art when the app has it, square icon otherwise.
+                val icon = try {
+                    ri.activityInfo.loadBanner(pm)
+                } catch (e: Exception) {
+                    null
+                } ?: ri.activityInfo.loadIcon(pm)
                 val launch = Intent(Intent.ACTION_MAIN).apply {
                     setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
                     addCategory(Intent.CATEGORY_LAUNCHER)
@@ -124,6 +193,11 @@ class MainActivity : Activity() {
             view.isFocusable = true
             view.isFocusableInTouchMode = true
             view.setOnClickListener { startActivity(app.launch) }
+            // Tile lifts slightly on focus, over the red focus ring.
+            view.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                val s = if (hasFocus) 1.06f else 1.0f
+                view.animate().scaleX(s).scaleY(s).setDuration(120).start()
+            }
             return view
         }
     }
