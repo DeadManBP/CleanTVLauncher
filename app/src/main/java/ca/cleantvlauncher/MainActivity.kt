@@ -199,7 +199,7 @@ class MainActivity : Activity() {
                 val icon = ri.activityInfo.loadIcon(pm)
                 // Banner art for the hero area; not every app has one.
                 val banner: Drawable? = try {
-                    ri.loadBanner(pm)
+                    ri.activityInfo.loadBanner(pm)
                 } catch (e: Exception) {
                     null
                 }
