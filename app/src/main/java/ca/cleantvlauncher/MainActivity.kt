@@ -11,7 +11,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,6 +38,12 @@ import java.util.Locale
  * D-pad centre fires GridView's item click, NOT the item view's own click
  * listener — that is why taps did nothing in v1.2), live clock, Settings
  * tile, gunmetal gradient wallpaper + custom cleantv-wallpaper.jpg/.png.
+ *
+ * v2.1 fix: focus moved left/right but centre did nothing. The tile's own
+ * setOnClickListener made it clickable, swallowing the centre press before
+ * GridView saw it. Removed it; launches now go through launchApp() from
+ * GridView's item click and from a DPAD_CENTER/ENTER key handler, using
+ * the system's own launch intent per package.
  */
 class MainActivity : Activity() {
 
@@ -46,6 +54,10 @@ class MainActivity : Activity() {
     private lateinit var heroLabel: TextView
     private lateinit var wallpaperView: ImageView
     private lateinit var wallpaperDim: View
+    // Guard against the same app being launched twice from two handlers
+    // firing for one centre press (GridView item click + key handler).
+    private var lastLaunchAt = 0L
+    private var lastLaunchPkg = ""
     private val clockHandler = Handler(Looper.getMainLooper())
     private val clockTick = object : Runnable {
         override fun run() {
@@ -77,9 +89,11 @@ class MainActivity : Activity() {
         loadDock()
         // D-pad center on a TV remote fires GridView's item click, NOT the
         // item view's own click listener — that is why taps did nothing in v1.2.
+        // v2.1: the tile's own setOnClickListener made the tile clickable, which
+        // swallows the centre press before GridView ever sees it, so the tile
+        // must NOT have its own click listener — GridView handles the press.
         grid.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
-            val app = (grid.adapter as AppAdapter).getItem(position)
-            startActivity(app.launch)
+            launchApp((grid.adapter as AppAdapter).getItem(position))
         }
         grid.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
@@ -90,6 +104,37 @@ class MainActivity : Activity() {
         maybeRequestStoragePermission()
         loadWallpaper()
         clockHandler.post(clockTick)
+    }
+
+    /** Single launch path, with a 500 ms guard against double-firing. */
+    private fun launchApp(app: AppEntry) {
+        val now = SystemClock.uptimeMillis()
+        if (app.packageName == lastLaunchPkg && now - lastLaunchAt < 500) return
+        lastLaunchAt = now
+        lastLaunchPkg = app.packageName
+        try {
+            startActivity(app.launch)
+        } catch (e: Exception) {
+            // Never let a bad launch intent kill the launcher.
+        }
+    }
+
+    /**
+     * Belt-and-braces for the centre press: if GridView's item click does not
+     * fire for a given remote, the key event itself launches the selected app.
+     * The 500 ms guard in launchApp() stops this double-firing with the
+     * item-click handler when both do fire.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (!::grid.isInitialized) return super.onKeyDown(keyCode, event)
+            val pos = grid.selectedItemPosition
+            if (pos >= 0) {
+                launchApp((grid.adapter as AppAdapter).getItem(pos))
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onResume() {
@@ -203,11 +248,16 @@ class MainActivity : Activity() {
                 } catch (e: Exception) {
                     null
                 }
-                val launch = Intent(Intent.ACTION_MAIN).apply {
-                    setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
-                    addCategory(Intent.CATEGORY_LAUNCHER)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
+                // Use the system's own launch intent for the package: it is
+                // the correct Leanback/launcher intent for TV apps. Fall back
+                // to an explicit intent if the system has none.
+                val launch = pm.getLaunchIntentForPackage(ri.activityInfo.packageName)
+                    ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                    ?: Intent(Intent.ACTION_MAIN).apply {
+                        setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
+                        addCategory(Intent.CATEGORY_LAUNCHER)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
                 out.add(AppEntry(label, ri.activityInfo.packageName, icon, banner, launch))
             }
         }
@@ -240,7 +290,11 @@ class MainActivity : Activity() {
             view.contentDescription = app.label
             view.isFocusable = true
             view.isFocusableInTouchMode = true
-            view.setOnClickListener { startActivity(app.launch) }
+            // NOTE: no setOnClickListener here on purpose. A clickable tile
+            // swallows the D-pad centre press before GridView's
+            // onItemClickListener ever sees it — that was the v2 click bug.
+            // GridView's item click + the Activity's DPAD_CENTER key handler
+            // (both routed through launchApp()) are the only launch paths.
             // Tile lifts slightly on focus, over the red focus ring, and the
             // hero follows focus — this is the reliable hero trigger.
             view.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
