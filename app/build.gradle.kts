@@ -31,8 +31,3 @@ android {
     }
 }
 
-dependencies {
-    // App drawer grid. A RecyclerView, not a GridView — GridView swallows
-    // short DPAD_CENTER presses (the v2.0–v2.2 long-press bug).
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-}
