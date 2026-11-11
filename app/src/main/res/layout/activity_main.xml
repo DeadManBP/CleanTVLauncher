@@ -22,44 +22,66 @@
         android:background="#80000000"
         android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="32dp"
-        android:layout_marginStart="32dp"
-        android:text="@string/app_name"
-        android:textColor="#FFFFFF"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
+    <!-- Big clock + date, top-left, tvOS style -->
     <TextView
         android:id="@+id/clock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="32dp"
-        android:textColor="#B0B0B0"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="28dp"
+        android:layout_marginStart="40dp"
+        android:textColor="#FFFFFF"
+        android:textSize="52sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/clock"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="2dp"
+        android:textColor="#D8D8D8"
         android:textSize="20sp" />
 
+    <!-- Hero: the focused app's banner art (icon fallback), with its name below -->
+    <ImageView
+        android:id="@+id/hero_banner"
+        android:layout_width="600dp"
+        android:layout_height="230dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="104dp"
+        android:scaleType="fitCenter" />
+
+    <TextView
+        android:id="@+id/hero_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/hero_banner"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <!-- Bottom-centred dock: one row of app icons. Still a GridView, so
+         D-pad centre fires onItemClickListener (the v1.3 fix) — the number
+         of columns is set in code to the app count, one row, no scrolling. -->
     <GridView
         android:id="@+id/app_grid"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/title"
-        android:layout_marginTop="24dp"
+        android:layout_height="76dp"
+        android:layout_alignParentBottom="true"
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
-        android:layout_marginBottom="32dp"
-        android:numColumns="auto_fit"
-        android:columnWidth="180dp"
+        android:layout_marginBottom="16dp"
+        android:columnWidth="60dp"
         android:stretchMode="spacingWidthUniform"
-        android:horizontalSpacing="24dp"
-        android:verticalSpacing="24dp"
+        android:horizontalSpacing="6dp"
+        android:verticalSpacing="0dp"
         android:gravity="center"
         android:scrollbars="none" />
 
