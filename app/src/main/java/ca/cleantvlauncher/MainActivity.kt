@@ -13,14 +13,12 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.BaseAdapter
-import android.widget.GridView
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import java.io.File
 import java.text.SimpleDateFormat
@@ -34,29 +32,21 @@ import java.util.Locale
  * No rows, no recommendations, no ads, no network use at all.
  *
  * Kept from v1.3: <queries> for LAUNCHER + LEANBACK_LAUNCHER, disabled apps
- * skipped, GridView onItemClickListener for D-pad centre (a TV remote's
- * D-pad centre fires GridView's item click, NOT the item view's own click
- * listener — that is why taps did nothing in v1.2), live clock, Settings
- * tile, gunmetal gradient wallpaper + custom cleantv-wallpaper.jpg/.png.
+ * skipped, live clock, Settings tile, gunmetal gradient wallpaper + custom
+ * cleantv-wallpaper.jpg/.png.
  *
- * v2.1 fix: focus moved left/right but centre did nothing. The tile's own
- * setOnClickListener made it clickable, swallowing the centre press before
- * GridView saw it. Removed it; launches now go through launchApp() from
- * GridView's item click and from a DPAD_CENTER/ENTER key handler, using
- * the system's own launch intent per package.
- *
- * v2.2 fix: centre worked in v2.1 but only on a long press. A short press
- * is eaten by GridView itself — it holds the key down waiting for the
- * key-up/click, and the Activity's key handler only sees the event once
- * the key starts repeating on a long press. So each tile now has its own
- * OnKeyListener that launches on DPAD_CENTER/ENTER ACTION_DOWN, the very
- * first moment the focused tile sees the press. GridView item click and
- * the Activity key handler stay as backups; launchApp()'s 500 ms guard
- * stops any of them double-firing.
+ * v2.3: the dock is NO LONGER a GridView. A GridView (AdapterView) swallows
+ * a short DPAD_CENTER press — it holds the key down waiting for the key-up
+ * and its onItemClick never fires for a short tap; only the key repeats on
+ * a long press leaked through to the Activity's key handler. That is why
+ * v2.0–v2.2 all needed a long press, even a simulated `input keyevent 23`
+ * did nothing. The dock is now a plain horizontal LinearLayout of real
+ * focusable tiles (inside a HorizontalScrollView so a long dock scrolls),
+ * so the focused tile gets the centre key directly on ACTION_DOWN.
  */
 class MainActivity : Activity() {
 
-    private lateinit var grid: GridView
+    private lateinit var dock: LinearLayout
     private lateinit var clock: TextView
     private lateinit var dateView: TextView
     private lateinit var heroBanner: ImageView
@@ -64,7 +54,7 @@ class MainActivity : Activity() {
     private lateinit var wallpaperView: ImageView
     private lateinit var wallpaperDim: View
     // Guard against the same app being launched twice from two handlers
-    // firing for one centre press (GridView item click + key handler).
+    // firing for one centre press (tile key handler + tile click + Activity).
     private var lastLaunchAt = 0L
     private var lastLaunchPkg = ""
     private val clockHandler = Handler(Looper.getMainLooper())
@@ -88,7 +78,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        grid = findViewById(R.id.app_grid)
+        dock = findViewById(R.id.app_dock)
         clock = findViewById(R.id.clock)
         dateView = findViewById(R.id.date)
         heroBanner = findViewById(R.id.hero_banner)
@@ -96,20 +86,6 @@ class MainActivity : Activity() {
         wallpaperView = findViewById(R.id.wallpaper)
         wallpaperDim = findViewById(R.id.wallpaper_dim)
         loadDock()
-        // D-pad center on a TV remote fires GridView's item click, NOT the
-        // item view's own click listener — that is why taps did nothing in v1.2.
-        // v2.1: the tile's own setOnClickListener made the tile clickable, which
-        // swallows the centre press before GridView ever sees it, so the tile
-        // must NOT have its own click listener — GridView handles the press.
-        grid.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
-            launchApp((grid.adapter as AppAdapter).getItem(position))
-        }
-        grid.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                updateHero((grid.adapter as AppAdapter).getItem(position))
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
         maybeRequestStoragePermission()
         loadWallpaper()
         clockHandler.post(clockTick)
@@ -128,18 +104,12 @@ class MainActivity : Activity() {
         }
     }
 
-    /**
-     * Belt-and-braces for the centre press: if GridView's item click does not
-     * fire for a given remote, the key event itself launches the selected app.
-     * The 500 ms guard in launchApp() stops this double-firing with the
-     * item-click handler when both do fire.
-     */
+    /** Backup only: the focused tile's own key/click handlers are primary. */
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-            if (!::grid.isInitialized) return super.onKeyDown(keyCode, event)
-            val pos = grid.selectedItemPosition
-            if (pos >= 0) {
-                launchApp((grid.adapter as AppAdapter).getItem(pos))
+            val focused = currentFocus
+            if (focused != null && focused.tag is AppEntry) {
+                launchApp(focused.tag as AppEntry)
                 return true
             }
         }
@@ -153,16 +123,54 @@ class MainActivity : Activity() {
         loadWallpaper()
     }
 
-    /** (Re)builds the dock: one row, one column per app, hero on the first app. */
+    private fun dp(value: Int): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
+        ).toInt()
+
+    /** (Re)builds the dock: one focusable tile per app, hero on the first. */
     private fun loadDock() {
         val apps = loadApps()
-        grid.numColumns = apps.size.coerceAtLeast(1)
-        grid.adapter = AppAdapter(apps)
-        if (apps.isNotEmpty()) {
-            grid.setSelection(0)
-            updateHero(apps[0])
+        dock.removeAllViews()
+        for (app in apps) {
+            val tile = LayoutInflater.from(this).inflate(R.layout.item_app, dock, false)
+            tile.findViewById<ImageView>(R.id.app_icon).setImageDrawable(app.icon)
+            tile.contentDescription = app.label
+            tile.tag = app
+            tile.isFocusable = true
+            tile.isFocusableInTouchMode = true
+            val params = LinearLayout.LayoutParams(dp(68), dp(64))
+            params.marginStart = dp(3)
+            params.marginEnd = dp(3)
+            tile.layoutParams = params
+            // A plain tile (no AdapterView above it) gets the centre key
+            // directly, so both the key-down handler and the click handler
+            // work for a short tap; launchApp()'s guard dedupes them.
+            tile.setOnClickListener { launchApp(app) }
+            tile.setOnKeyListener { _, keyCode, event ->
+                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                            keyCode == KeyEvent.KEYCODE_ENTER) &&
+                    event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
+                ) {
+                    launchApp(app)
+                    true
+                } else {
+                    false
+                }
+            }
+            // Tile lifts slightly on focus, over the red focus ring, and the
+            // hero follows focus.
+            tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+                val s = if (hasFocus) 1.12f else 1.0f
+                v.animate().scaleX(s).scaleY(s).setDuration(120).start()
+                if (hasFocus) updateHero(app)
+            }
+            dock.addView(tile)
         }
-        grid.requestFocus()
+        if (apps.isNotEmpty()) {
+            updateHero(apps[0])
+            dock.post { dock.getChildAt(0)?.requestFocus() }
+        }
     }
 
     private fun updateHero(app: AppEntry) {
@@ -284,49 +292,5 @@ class MainActivity : Activity() {
         )
         out.sortBy { it.label.lowercase(Locale.getDefault()) }
         return out
-    }
-
-    private inner class AppAdapter(private val apps: List<AppEntry>) : BaseAdapter() {
-        override fun getCount(): Int = apps.size
-        override fun getItem(position: Int): AppEntry = apps[position]
-        override fun getItemId(position: Int): Long = position.toLong()
-
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val view = convertView ?: LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_app, parent, false)
-            val app = apps[position]
-            view.findViewById<ImageView>(R.id.app_icon).setImageDrawable(app.icon)
-            view.contentDescription = app.label
-            view.isFocusable = true
-            view.isFocusableInTouchMode = true
-            // NOTE: no setOnClickListener here on purpose. A clickable tile
-            // swallows the D-pad centre press before GridView's
-            // onItemClickListener ever sees it — that was the v2 click bug.
-            // Instead the tile handles the key itself: the focused tile sees
-            // DPAD_CENTER first, so launching on ACTION_DOWN makes a short
-            // tap work (v2.2 — GridView holds a short press waiting for the
-            // key-up, which is why v2.1 needed a long press). GridView's
-            // item click + the Activity's DPAD_CENTER key handler stay as
-            // backups; launchApp()'s 500 ms guard stops double-firing.
-            view.setOnKeyListener { _, keyCode, event ->
-                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            keyCode == KeyEvent.KEYCODE_ENTER) &&
-                    event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
-                ) {
-                    launchApp(app)
-                    true
-                } else {
-                    false
-                }
-            }
-            // Tile lifts slightly on focus, over the red focus ring, and the
-            // hero follows focus — this is the reliable hero trigger.
-            view.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-                val s = if (hasFocus) 1.12f else 1.0f
-                view.animate().scaleX(s).scaleY(s).setDuration(120).start()
-                if (hasFocus) updateHero(app)
-            }
-            return view
-        }
     }
 }
