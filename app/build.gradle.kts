@@ -11,8 +11,8 @@ android {
         applicationId = "ca.cleantvlauncher"
         minSdk = 21
         targetSdk = 34
-        versionCode = 9
-        versionName = "2.4"
+        versionCode = 10
+        versionName = "2.5"
     }
 
     buildTypes {
@@ -29,4 +29,10 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+dependencies {
+    // App drawer grid. A RecyclerView, not a GridView — GridView swallows
+    // short DPAD_CENTER presses (the v2.0–v2.2 long-press bug).
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 }
