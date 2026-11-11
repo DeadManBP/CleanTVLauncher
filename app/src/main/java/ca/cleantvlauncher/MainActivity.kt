@@ -44,6 +44,15 @@ import java.util.Locale
  * GridView saw it. Removed it; launches now go through launchApp() from
  * GridView's item click and from a DPAD_CENTER/ENTER key handler, using
  * the system's own launch intent per package.
+ *
+ * v2.2 fix: centre worked in v2.1 but only on a long press. A short press
+ * is eaten by GridView itself — it holds the key down waiting for the
+ * key-up/click, and the Activity's key handler only sees the event once
+ * the key starts repeating on a long press. So each tile now has its own
+ * OnKeyListener that launches on DPAD_CENTER/ENTER ACTION_DOWN, the very
+ * first moment the focused tile sees the press. GridView item click and
+ * the Activity key handler stay as backups; launchApp()'s 500 ms guard
+ * stops any of them double-firing.
  */
 class MainActivity : Activity() {
 
@@ -293,8 +302,23 @@ class MainActivity : Activity() {
             // NOTE: no setOnClickListener here on purpose. A clickable tile
             // swallows the D-pad centre press before GridView's
             // onItemClickListener ever sees it — that was the v2 click bug.
-            // GridView's item click + the Activity's DPAD_CENTER key handler
-            // (both routed through launchApp()) are the only launch paths.
+            // Instead the tile handles the key itself: the focused tile sees
+            // DPAD_CENTER first, so launching on ACTION_DOWN makes a short
+            // tap work (v2.2 — GridView holds a short press waiting for the
+            // key-up, which is why v2.1 needed a long press). GridView's
+            // item click + the Activity's DPAD_CENTER key handler stay as
+            // backups; launchApp()'s 500 ms guard stops double-firing.
+            view.setOnKeyListener { _, keyCode, event ->
+                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                            keyCode == KeyEvent.KEYCODE_ENTER) &&
+                    event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
+                ) {
+                    launchApp(app)
+                    true
+                } else {
+                    false
+                }
+            }
             // Tile lifts slightly on focus, over the red focus ring, and the
             // hero follows focus — this is the reliable hero trigger.
             view.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
