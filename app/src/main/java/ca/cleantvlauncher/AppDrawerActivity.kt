@@ -3,23 +3,24 @@ package ca.cleantvlauncher
 import android.app.Activity
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 
 /**
  * Clean TV v2.5 — the app drawer: a full-screen sub-menu with every app in
  * a grid, opened from the grid tile at the end of the home dock.
  * D-pad moves, short centre launches, Back closes.
  *
- * Uses a RecyclerView, NOT a GridView — a GridView swallows short
- * DPAD_CENTER presses (the v2.0–v2.2 long-press bug), while RecyclerView
- * items are real focusable views that get the key directly.
+ * Built from plain LinearLayout rows inside a ScrollView, with NO extra
+ * dependency. (The first v2.5 cut used a RecyclerView; every build with
+ * that dependency failed at the build step, so the drawer was rewritten
+ * dependency-free. A GridView was never an option — it swallows short
+ * DPAD_CENTER presses, the v2.0–v2.2 long-press bug.)
  */
 class AppDrawerActivity : Activity() {
 
@@ -31,11 +32,64 @@ class AppDrawerActivity : Activity() {
         setContentView(R.layout.activity_drawer)
         val apps = loadLaunchableApps(packageManager, packageName)
         findViewById<TextView>(R.id.drawer_title).text = "All Apps (${apps.size})"
-        val grid = findViewById<RecyclerView>(R.id.drawer_grid)
-        grid.layoutManager = GridLayoutManager(this, 5)
-        grid.adapter = DrawerAdapter(apps) { app -> launchApp(app) }
-        grid.setHasFixedSize(true)
-        grid.post { grid.getChildAt(0)?.requestFocus() }
+        val container = findViewById<LinearLayout>(R.id.drawer_container)
+        val cols = 5
+        var firstTile: View? = null
+        for (row in apps.chunked(cols)) {
+            val rowLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            for (app in row) {
+                val tile = LayoutInflater.from(this)
+                    .inflate(R.layout.item_drawer_app, rowLayout, false)
+                tile.findViewById<ImageView>(R.id.drawer_app_banner)
+                    .setImageDrawable(app.banner ?: app.icon)
+                tile.findViewById<TextView>(R.id.drawer_app_label).text = app.label
+                tile.contentDescription = app.label
+                tile.isFocusable = true
+                tile.isFocusableInTouchMode = true
+                val params = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+                params.marginStart = dp(6)
+                params.marginEnd = dp(6)
+                params.topMargin = dp(6)
+                params.bottomMargin = dp(6)
+                tile.layoutParams = params
+                tile.setOnClickListener { launchApp(app) }
+                tile.setOnKeyListener { _, keyCode, event ->
+                    if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                keyCode == KeyEvent.KEYCODE_ENTER) &&
+                        event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
+                    ) {
+                        launchApp(app)
+                        true
+                    } else {
+                        false
+                    }
+                }
+                tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+                    val s = if (hasFocus) 1.08f else 1.0f
+                    v.animate().scaleX(s).scaleY(s).setDuration(120).start()
+                }
+                rowLayout.addView(tile)
+                if (firstTile == null) firstTile = tile
+            }
+            // Pad a short last row with spacers so tiles keep equal width.
+            repeat(cols - row.size) {
+                val spacer = View(this)
+                spacer.layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+                rowLayout.addView(spacer)
+            }
+            container.addView(rowLayout)
+        }
+        firstTile?.post { firstTile?.requestFocus() }
     }
 
     private fun launchApp(app: AppEntry) {
@@ -52,48 +106,8 @@ class AppDrawerActivity : Activity() {
         }
     }
 
-    private class DrawerAdapter(
-        private val apps: List<AppEntry>,
-        private val onLaunch: (AppEntry) -> Unit
-    ) : RecyclerView.Adapter<DrawerAdapter.Holder>() {
-
-        class Holder(view: View) : RecyclerView.ViewHolder(view) {
-            val banner: ImageView = view.findViewById(R.id.drawer_app_banner)
-            val label: TextView = view.findViewById(R.id.drawer_app_label)
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_drawer_app, parent, false)
-            return Holder(view)
-        }
-
-        override fun onBindViewHolder(holder: Holder, position: Int) {
-            val app = apps[position]
-            holder.banner.setImageDrawable(app.banner ?: app.icon)
-            holder.label.text = app.label
-            val view = holder.itemView
-            view.contentDescription = app.label
-            view.isFocusable = true
-            view.isFocusableInTouchMode = true
-            view.setOnClickListener { onLaunch(app) }
-            view.setOnKeyListener { _, keyCode, event ->
-                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            keyCode == KeyEvent.KEYCODE_ENTER) &&
-                    event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
-                ) {
-                    onLaunch(app)
-                    true
-                } else {
-                    false
-                }
-            }
-            view.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-                val s = if (hasFocus) 1.08f else 1.0f
-                v.animate().scaleX(s).scaleY(s).setDuration(120).start()
-            }
-        }
-
-        override fun getItemCount(): Int = apps.size
-    }
+    private fun dp(value: Int): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
+        ).toInt()
 }
