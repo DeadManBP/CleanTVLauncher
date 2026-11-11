@@ -28,8 +28,10 @@
         android:textColor="#D8D8D8"
         android:textSize="18sp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/drawer_grid"
+    <!-- Plain LinearLayout rows in a ScrollView, no RecyclerView dependency.
+         The ScrollView scrolls to keep the focused tile visible. -->
+    <ScrollView
+        android:id="@+id/drawer_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/drawer_title"
@@ -37,6 +39,14 @@
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:layout_marginBottom="24dp"
-        android:clipToPadding="false" />
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/drawer_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </ScrollView>
 
 </RelativeLayout>
