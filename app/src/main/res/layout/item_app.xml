@@ -1,27 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Dock tile: icon only. The app name lives in the hero area, tvOS style.
+     Root width is match_parent so the GridView column width (one row of
+     N apps) decides the tile size. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="180dp"
-    android:layout_height="180dp"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
     android:background="@drawable/app_focus"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="6dp">
 
     <ImageView
         android:id="@+id/app_icon"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:scaleType="fitCenter" />
-
-    <TextView
-        android:id="@+id/app_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:maxLines="1"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
 
 </LinearLayout>
