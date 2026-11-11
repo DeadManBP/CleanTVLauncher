@@ -67,22 +67,28 @@
         android:textSize="30sp"
         android:textStyle="bold" />
 
-    <!-- Bottom-centred dock: one row of app icons. Still a GridView, so
-         D-pad centre fires onItemClickListener (the v1.3 fix) — the number
-         of columns is set in code to the app count, one row, no scrolling. -->
-    <GridView
-        android:id="@+id/app_grid"
+    <!-- Bottom-centred dock: one row of app icons. v2.3: a plain horizontal
+         LinearLayout of focusable tiles inside a HorizontalScrollView, NOT a
+         GridView — a GridView swallows a short DPAD_CENTER press (its item
+         click never fires for a short tap, only key repeats on a long press
+         leak through), which is why v2.0–v2.2 all needed a long press. -->
+    <HorizontalScrollView
+        android:id="@+id/dock_scroll"
         android:layout_width="match_parent"
         android:layout_height="76dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
         android:layout_marginBottom="16dp"
-        android:columnWidth="60dp"
-        android:stretchMode="spacingWidthUniform"
-        android:horizontalSpacing="6dp"
-        android:verticalSpacing="0dp"
-        android:gravity="center"
-        android:scrollbars="none" />
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/app_dock"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:orientation="horizontal" />
+
+    </HorizontalScrollView>
 
 </RelativeLayout>
