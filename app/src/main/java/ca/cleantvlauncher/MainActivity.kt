@@ -35,14 +35,14 @@ import java.util.Locale
  * skipped, live clock, Settings tile, gunmetal gradient wallpaper + custom
  * cleantv-wallpaper.jpg/.png.
  *
- * v2.3: the dock is NO LONGER a GridView. A GridView (AdapterView) swallows
- * a short DPAD_CENTER press — it holds the key down waiting for the key-up
- * and its onItemClick never fires for a short tap; only the key repeats on
- * a long press leaked through to the Activity's key handler. That is why
- * v2.0–v2.2 all needed a long press, even a simulated `input keyevent 23`
- * did nothing. The dock is now a plain horizontal LinearLayout of real
- * focusable tiles (inside a HorizontalScrollView so a long dock scrolls),
- * so the focused tile gets the centre key directly on ACTION_DOWN.
+ * v2.3: the dock is a plain horizontal LinearLayout of real focusable tiles
+ * (inside a HorizontalScrollView), NOT a GridView — a GridView swallows a
+ * short DPAD_CENTER press, which is why v2.0–v2.2 all needed a long press.
+ *
+ * v2.5: an app drawer. A grid tile at the end of the dock (then Settings,
+ * like the launcher in Brian's video) opens AppDrawerActivity, a
+ * full-screen grid of every app. The drawer is a RecyclerView, not a
+ * GridView, for the same centre-press reason.
  */
 class MainActivity : Activity() {
 
@@ -66,14 +66,6 @@ class MainActivity : Activity() {
             clockHandler.postDelayed(this, 30_000)
         }
     }
-
-    data class AppEntry(
-        val label: String,
-        val packageName: String,
-        val icon: Drawable,
-        val banner: Drawable?,
-        val launch: Intent
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,60 +120,97 @@ class MainActivity : Activity() {
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
         ).toInt()
 
-    /** (Re)builds the dock: one focusable tile per app, hero on the first. */
+    /**
+     * (Re)builds the dock: one focusable tile per app, A–Z, then the app
+     * drawer tile, then Settings last.
+     */
     private fun loadDock() {
-        val apps = loadApps()
+        val apps = loadLaunchableApps(packageManager, packageName)
         // Size tiles so the whole dock fits on screen when it can: the
         // screen width in dp, minus 32dp of side breathing room, split
-        // evenly across the apps, capped at 68dp. The HorizontalScrollView
-        // stays as a fallback if the count ever outgrows the screen.
+        // evenly across the apps plus the two special tiles, capped at 68dp.
+        // The HorizontalScrollView stays as a fallback if the count ever
+        // outgrows the screen.
         val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-        val count = apps.size.coerceAtLeast(1)
+        val count = (apps.size + 2).coerceAtLeast(1)
         val tileWidthDp = minOf(68, ((screenWidthDp - 32) / count).toInt() - 6)
             .coerceAtLeast(44)
         dock.removeAllViews()
         for (app in apps) {
-            val tile = LayoutInflater.from(this).inflate(R.layout.item_app, dock, false)
-            val iconView = tile.findViewById<ImageView>(R.id.app_icon)
-            iconView.setImageDrawable(app.icon)
-            val iconSize = dp((tileWidthDp - 8).coerceAtLeast(36))
-            iconView.layoutParams = LinearLayout.LayoutParams(iconSize, iconSize)
-            tile.contentDescription = app.label
-            tile.tag = app
-            tile.isFocusable = true
-            tile.isFocusableInTouchMode = true
-            val params = LinearLayout.LayoutParams(dp(tileWidthDp), dp(64))
-            params.marginStart = dp(3)
-            params.marginEnd = dp(3)
-            tile.layoutParams = params
-            // A plain tile (no AdapterView above it) gets the centre key
-            // directly, so both the key-down handler and the click handler
-            // work for a short tap; launchApp()'s guard dedupes them.
-            tile.setOnClickListener { launchApp(app) }
-            tile.setOnKeyListener { _, keyCode, event ->
-                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            keyCode == KeyEvent.KEYCODE_ENTER) &&
-                    event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
-                ) {
-                    launchApp(app)
-                    true
-                } else {
-                    false
-                }
-            }
-            // Tile lifts slightly on focus, over the red focus ring, and the
-            // hero follows focus.
-            tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-                val s = if (hasFocus) 1.12f else 1.0f
-                v.animate().scaleX(s).scaleY(s).setDuration(120).start()
-                if (hasFocus) updateHero(app)
-            }
-            dock.addView(tile)
+            dock.addView(makeDockTile(app, tileWidthDp))
         }
+        // App drawer tile (grid icon), then Settings last.
+        val drawerIcon: Drawable = getDrawable(R.drawable.ic_apps_grid)!!
+        dock.addView(
+            makeDockTile(
+                AppEntry(
+                    "All Apps",
+                    "ca.cleantvlauncher.drawer",
+                    drawerIcon,
+                    null,
+                    Intent(this, AppDrawerActivity::class.java)
+                ),
+                tileWidthDp
+            )
+        )
+        val settingsIcon: Drawable = getDrawable(android.R.drawable.ic_menu_preferences)
+            ?: getDrawable(android.R.drawable.ic_menu_manage)!!
+        dock.addView(
+            makeDockTile(
+                AppEntry(
+                    "Settings",
+                    "com.android.tv.settings",
+                    settingsIcon,
+                    null,
+                    Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ),
+                tileWidthDp
+            )
+        )
         if (apps.isNotEmpty()) {
             updateHero(apps[0])
             dock.post { dock.getChildAt(0)?.requestFocus() }
         }
+    }
+
+    /** One focusable dock tile for an app (or a special tile). */
+    private fun makeDockTile(app: AppEntry, tileWidthDp: Int): View {
+        val tile = LayoutInflater.from(this).inflate(R.layout.item_app, dock, false)
+        val iconView = tile.findViewById<ImageView>(R.id.app_icon)
+        iconView.setImageDrawable(app.icon)
+        val iconSize = dp((tileWidthDp - 8).coerceAtLeast(36))
+        iconView.layoutParams = LinearLayout.LayoutParams(iconSize, iconSize)
+        tile.contentDescription = app.label
+        tile.tag = app
+        tile.isFocusable = true
+        tile.isFocusableInTouchMode = true
+        val params = LinearLayout.LayoutParams(dp(tileWidthDp), dp(64))
+        params.marginStart = dp(3)
+        params.marginEnd = dp(3)
+        tile.layoutParams = params
+        // A plain tile (no AdapterView above it) gets the centre key
+        // directly, so both the key-down handler and the click handler
+        // work for a short tap; launchApp()'s guard dedupes them.
+        tile.setOnClickListener { launchApp(app) }
+        tile.setOnKeyListener { _, keyCode, event ->
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                        keyCode == KeyEvent.KEYCODE_ENTER) &&
+                event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
+            ) {
+                launchApp(app)
+                true
+            } else {
+                false
+            }
+        }
+        // Tile lifts slightly on focus, over the red focus ring, and the
+        // hero follows focus.
+        tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+            val s = if (hasFocus) 1.12f else 1.0f
+            v.animate().scaleX(s).scaleY(s).setDuration(120).start()
+            if (hasFocus) updateHero(app)
+        }
+        return tile
     }
 
     private fun updateHero(app: AppEntry) {
@@ -250,58 +279,58 @@ class MainActivity : Activity() {
     override fun onBackPressed() {
         // Home screen: Back does nothing.
     }
+}
 
-    private fun loadApps(): List<AppEntry> {
-        val pm: PackageManager = packageManager
-        val seen = HashSet<String>()
-        val out = ArrayList<AppEntry>()
-        val intents = listOf(
-            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER),
-            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        )
-        for (intent in intents) {
-            val found: List<ResolveInfo> = pm.queryIntentActivities(intent, 0)
-            for (ri in found) {
-                val key = ri.activityInfo.packageName + "/" + ri.activityInfo.name
-                if (!seen.add(key)) continue
-                if (ri.activityInfo.packageName == packageName) continue
-                // Skip apps disabled by the user (e.g. YouTube Music from debloat batch 2).
-                if (!ri.activityInfo.applicationInfo.enabled) continue
-                if (!ri.activityInfo.enabled) continue
-                val label = ri.loadLabel(pm).toString()
-                val icon = ri.activityInfo.loadIcon(pm)
-                // Banner art for the hero area; not every app has one.
-                val banner: Drawable? = try {
-                    ri.activityInfo.loadBanner(pm)
-                } catch (e: Exception) {
-                    null
-                }
-                // Use the system's own launch intent for the package: it is
-                // the correct Leanback/launcher intent for TV apps. Fall back
-                // to an explicit intent if the system has none.
-                val launch = pm.getLaunchIntentForPackage(ri.activityInfo.packageName)
-                    ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                    ?: Intent(Intent.ACTION_MAIN).apply {
-                        setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
-                        addCategory(Intent.CATEGORY_LAUNCHER)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                out.add(AppEntry(label, ri.activityInfo.packageName, icon, banner, launch))
+/** One launchable app (or special tile) in the dock / drawer. */
+data class AppEntry(
+    val label: String,
+    val packageName: String,
+    val icon: Drawable,
+    val banner: Drawable?,
+    val launch: Intent
+)
+
+/**
+ * The launchable apps on the device, A–Z, skipping ourselves and disabled
+ * apps. Shared by the home dock and the app drawer.
+ */
+fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> {
+    val seen = HashSet<String>()
+    val out = ArrayList<AppEntry>()
+    val intents = listOf(
+        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER),
+        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+    )
+    for (intent in intents) {
+        val found: List<ResolveInfo> = pm.queryIntentActivities(intent, 0)
+        for (ri in found) {
+            val key = ri.activityInfo.packageName + "/" + ri.activityInfo.name
+            if (!seen.add(key)) continue
+            if (ri.activityInfo.packageName == selfPackage) continue
+            // Skip apps disabled by the user (e.g. YouTube Music from debloat batch 2).
+            if (!ri.activityInfo.applicationInfo.enabled) continue
+            if (!ri.activityInfo.enabled) continue
+            val label = ri.loadLabel(pm).toString()
+            val icon = ri.activityInfo.loadIcon(pm)
+            // Banner art for the hero area and the drawer; not every app has one.
+            val banner: Drawable? = try {
+                ri.activityInfo.loadBanner(pm)
+            } catch (e: Exception) {
+                null
             }
+            // Use the system's own launch intent for the package: it is
+            // the correct Leanback/launcher intent for TV apps. Fall back
+            // to an explicit intent if the system has none.
+            val launch = pm.getLaunchIntentForPackage(ri.activityInfo.packageName)
+                ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                ?: Intent(Intent.ACTION_MAIN).apply {
+                    setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+            out.add(AppEntry(label, ri.activityInfo.packageName, icon, banner, launch))
         }
-        // Settings tile, so Wi-Fi and the rest stay reachable from the home screen.
-        val settingsIcon: Drawable = getDrawable(android.R.drawable.ic_menu_preferences)
-            ?: getDrawable(android.R.drawable.ic_menu_manage)!!
-        out.add(
-            AppEntry(
-                "Settings",
-                "com.android.tv.settings",
-                settingsIcon,
-                null,
-                Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
-        )
-        out.sortBy { it.label.lowercase(Locale.getDefault()) }
-        return out
     }
+    out.sortBy { it.label.lowercase(Locale.getDefault()) }
+    return out
 }
