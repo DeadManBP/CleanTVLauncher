@@ -43,6 +43,9 @@ import java.util.Locale
  * like the launcher in Brian's video) opens AppDrawerActivity, a
  * full-screen grid of every app. The drawer is a RecyclerView, not a
  * GridView, for the same centre-press reason.
+ * (Re-trigger: runs 31–37 all failed at the build step within one minute
+ * of each other, including the gradle-only run 31 — likely a transient
+ * runner/dependency hiccup, not the code. This comment-only push re-runs it.)
  */
 class MainActivity : Activity() {
 
