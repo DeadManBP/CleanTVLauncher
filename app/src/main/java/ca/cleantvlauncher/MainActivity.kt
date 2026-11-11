@@ -131,15 +131,26 @@ class MainActivity : Activity() {
     /** (Re)builds the dock: one focusable tile per app, hero on the first. */
     private fun loadDock() {
         val apps = loadApps()
+        // Size tiles so the whole dock fits on screen when it can: the
+        // screen width in dp, minus 32dp of side breathing room, split
+        // evenly across the apps, capped at 68dp. The HorizontalScrollView
+        // stays as a fallback if the count ever outgrows the screen.
+        val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
+        val count = apps.size.coerceAtLeast(1)
+        val tileWidthDp = minOf(68, ((screenWidthDp - 32) / count).toInt() - 6)
+            .coerceAtLeast(44)
         dock.removeAllViews()
         for (app in apps) {
             val tile = LayoutInflater.from(this).inflate(R.layout.item_app, dock, false)
-            tile.findViewById<ImageView>(R.id.app_icon).setImageDrawable(app.icon)
+            val iconView = tile.findViewById<ImageView>(R.id.app_icon)
+            iconView.setImageDrawable(app.icon)
+            val iconSize = dp((tileWidthDp - 8).coerceAtLeast(36))
+            iconView.layoutParams = LinearLayout.LayoutParams(iconSize, iconSize)
             tile.contentDescription = app.label
             tile.tag = app
             tile.isFocusable = true
             tile.isFocusableInTouchMode = true
-            val params = LinearLayout.LayoutParams(dp(68), dp(64))
+            val params = LinearLayout.LayoutParams(dp(tileWidthDp), dp(64))
             params.marginStart = dp(3)
             params.marginEnd = dp(3)
             tile.layoutParams = params
