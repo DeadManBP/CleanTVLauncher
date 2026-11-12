@@ -1,6 +1,7 @@
 package ca.cleantvlauncher
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.TypedValue
@@ -34,8 +35,17 @@ class AppDrawerActivity : Activity() {
         findViewById<TextView>(R.id.drawer_title).text = "All Apps (${apps.size})"
         val container = findViewById<LinearLayout>(R.id.drawer_container)
         val cols = 5
+        // First tile opens the favourites editor (v2.8); the rest are the apps.
+        val editorEntry = AppEntry(
+            "Edit favourites",
+            "ca.cleantvlauncher.favourites",
+            getDrawable(android.R.drawable.ic_menu_edit)!!,
+            null,
+            Intent(this, FavoritesActivity::class.java)
+        )
+        val entries = listOf(editorEntry) + apps
         var firstTile: View? = null
-        for (row in apps.chunked(cols)) {
+        for (row in entries.chunked(cols)) {
             val rowLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
@@ -77,7 +87,10 @@ class AppDrawerActivity : Activity() {
                     v.animate().scaleX(s).scaleY(s).setDuration(120).start()
                 }
                 rowLayout.addView(tile)
-                if (firstTile == null) firstTile = tile
+                // First focus lands on the first real app, not the editor tile.
+                if (firstTile == null && app.packageName != "ca.cleantvlauncher.favourites") {
+                    firstTile = tile
+                }
             }
             // Pad a short last row with spacers so tiles keep equal width.
             repeat(cols - row.size) {
