@@ -41,11 +41,13 @@ import java.util.Locale
  *
  * v2.5: an app drawer. A grid tile at the end of the dock (then Settings,
  * like the launcher in Brian's video) opens AppDrawerActivity, a
- * full-screen grid of every app. The drawer is a RecyclerView, not a
- * GridView, for the same centre-press reason.
- * (Re-trigger: runs 31–37 all failed at the build step within one minute
- * of each other, including the gradle-only run 31 — likely a transient
- * runner/dependency hiccup, not the code. This comment-only push re-runs it.)
+ * full-screen grid of every app. The drawer is plain LinearLayout rows in
+ * a ScrollView — never a GridView, for the same centre-press reason, and
+ * never a RecyclerView either: adding that dependency failed runs 31–38
+ * at the build step, so the drawer was rewritten dependency-free.
+ *
+ * v2.6: the dock only shows Brian's favourites (TiviMate, Play Store,
+ * Settings, in that order). Everything else lives in the drawer.
  */
 class MainActivity : Activity() {
 
@@ -123,12 +125,21 @@ class MainActivity : Activity() {
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
         ).toInt()
 
+    /** The dock only shows these, in this order. Everything else lives in the drawer. */
+    private val dockFavourites = listOf(
+        "ar.tvplayer.tv",        // TiviMate
+        "com.android.vending"    // Google Play Store
+    )
+
     /**
-     * (Re)builds the dock: one focusable tile per app, A–Z, then the app
+     * (Re)builds the dock: one focusable tile per favourite, then the app
      * drawer tile, then Settings last.
      */
     private fun loadDock() {
-        val apps = loadLaunchableApps(packageManager, packageName)
+        val allApps = loadLaunchableApps(packageManager, packageName)
+        val apps = dockFavourites.mapNotNull { pkg ->
+            allApps.find { it.packageName == pkg }
+        }
         // Size tiles so the whole dock fits on screen when it can: the
         // screen width in dp, minus 32dp of side breathing room, split
         // evenly across the apps plus the two special tiles, capped at 68dp.
