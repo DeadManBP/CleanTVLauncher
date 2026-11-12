@@ -11,8 +11,8 @@ android {
         applicationId = "ca.cleantvlauncher"
         minSdk = 21
         targetSdk = 34
-        versionCode = 15
-        versionName = "2.10"
+        versionCode = 16
+        versionName = "2.11"
     }
 
     buildTypes {
