@@ -86,7 +86,7 @@
         android:layout_height="84dp"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        android:layout_marginTop="100dp"
+        android:translationY="50dp"
         android:background="@drawable/dock_pill"
         android:clipChildren="false"
         android:clipToPadding="false"
