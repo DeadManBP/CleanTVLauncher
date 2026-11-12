@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Frosted-glass pill the dock sits in, like the launcher in Brian's
+     video. True live blur (RenderEffect) needs API 31+ and this TV is
+     Android 11 (API 30), so this is the frosted-tint version: a
+     translucent white fill + a pale stroke over the wallpaper. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#66000000" />
+    <stroke
+        android:width="1dp"
+        android:color="#33FFFFFF" />
+    <corners android:radius="38dp" />
+</shape>
