@@ -197,7 +197,7 @@ class MainActivity : Activity() {
                     "com.android.tv.settings",
                     settingsIcon,
                     null,
-                    Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    Intent(this, CleanTVSettingsActivity::class.java)
                 ),
                 smallTileDp
             )
@@ -322,27 +322,46 @@ class MainActivity : Activity() {
      * and pressing Home picks it up.
      */
     private fun loadWallpaper() {
-        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            wallpaperView.visibility = View.GONE
-            wallpaperDim.visibility = View.GONE
-            return
-        }
-        val dirs = listOf(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        )
-        for (dir in dirs) {
-            for (name in listOf("cleantv-wallpaper.jpg", "cleantv-wallpaper.png")) {
-                val f = File(dir, name)
-                if (f.exists()) {
-                    val bmp = BitmapFactory.decodeFile(f.absolutePath)
+        // Preferred path: wallpaper selected in CleanTV Settings via the
+        // Android document picker. Persisted URI permission survives reboot.
+        val savedUri = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+            .getString("wallpaper_uri", null)
+        if (!savedUri.isNullOrBlank()) {
+            try {
+                val uri = android.net.Uri.parse(savedUri)
+                contentResolver.openInputStream(uri).use { stream ->
+                    val bmp = stream?.let { BitmapFactory.decodeStream(it) }
                     if (bmp != null) {
                         wallpaperView.setImageBitmap(bmp)
                         wallpaperView.visibility = View.VISIBLE
                         wallpaperDim.visibility = View.VISIBLE
                         return
+                    }
+                }
+            } catch (_: Exception) {
+                // If the image was deleted or access revoked, fall back safely.
+            }
+        }
+
+        // Backward-compatible fallback for the original named wallpaper files.
+        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            val dirs = listOf(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+            )
+            for (dir in dirs) {
+                for (name in listOf("cleantv-wallpaper.jpg", "cleantv-wallpaper.png")) {
+                    val f = File(dir, name)
+                    if (f.exists()) {
+                        val bmp = BitmapFactory.decodeFile(f.absolutePath)
+                        if (bmp != null) {
+                            wallpaperView.setImageBitmap(bmp)
+                            wallpaperView.visibility = View.VISIBLE
+                            wallpaperDim.visibility = View.VISIBLE
+                            return
+                        }
                     }
                 }
             }
