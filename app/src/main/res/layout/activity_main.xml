@@ -67,18 +67,25 @@
         android:textSize="30sp"
         android:textStyle="bold" />
 
-    <!-- Bottom-centred dock: one row of app icons. v2.3: a plain horizontal
+    <!-- Bottom-centred dock: one row of tiles inside a frosted-glass pill
+         (v2.7, like the launcher in Brian's video). v2.3: a plain horizontal
          LinearLayout of focusable tiles inside a HorizontalScrollView, NOT a
          GridView — a GridView swallows a short DPAD_CENTER press (its item
          click never fires for a short tap, only key repeats on a long press
          leak through), which is why v2.0–v2.2 all needed a long press. -->
     <HorizontalScrollView
         android:id="@+id/dock_scroll"
-        android:layout_width="match_parent"
-        android:layout_height="76dp"
+        android:layout_width="wrap_content"
+        android:layout_height="84dp"
         android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp"
+        android:background="@drawable/dock_pill"
         android:fillViewport="true"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:scrollbars="none">
 
         <LinearLayout
