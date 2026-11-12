@@ -60,6 +60,10 @@ import java.util.Locale
  * "Edit favourites" tile that opens FavoritesActivity, where Brian can
  * star apps into the dock and reorder them with up/down buttons.
  * The dock order is stored in SharedPreferences; the clock stays top-left.
+ *
+ * v2.9: the v2.8 centred dock overlapped the hero — the screen is only
+ * 540dp tall (density 2.0), so the 230dp hero ran to ~70% of the screen.
+ * Hero shrunk to 128dp and the dock nudged down, so the two clear.
  */
 class MainActivity : Activity() {
 
