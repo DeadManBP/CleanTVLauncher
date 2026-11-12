@@ -51,3 +51,8 @@ gradle assembleDebug
 ```
 
 APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+
+
+## CleanTV 2.0 development
+
+CleanTV 2.0 is being developed in the `cleantv-2.0` branch as a separate Android application module (`app2`). Its debug test build uses the package ID `ca.cleantvlauncher2.dev`, so it can be installed alongside the existing Clean TV launcher without replacing it. The dedicated GitHub Actions workflow builds only `:app2:assembleDebug` and publishes a downloadable test APK artifact. The original `app` module and `main` branch remain untouched.
