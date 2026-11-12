@@ -2,6 +2,7 @@ package ca.cleantvlauncher
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
@@ -52,6 +53,13 @@ import java.util.Locale
  * v2.7: the dock sits in a frosted-glass pill (like the launcher in
  * Brian's video) and the app tiles are wide banner tiles; the grid and
  * Settings tiles stay small square icons at the end of the pill.
+ *
+ * v2.8: darker pill, the dock row sits in the vertical centre of the
+ * screen, tiles grow Apple TV style when focused (1.25x + a lift), and
+ * the favourites are editable on the TV: the drawer has an
+ * "Edit favourites" tile that opens FavoritesActivity, where Brian can
+ * star apps into the dock and reorder them with up/down buttons.
+ * The dock order is stored in SharedPreferences; the clock stays top-left.
  */
 class MainActivity : Activity() {
 
@@ -129,19 +137,13 @@ class MainActivity : Activity() {
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
         ).toInt()
 
-    /** The dock only shows these, in this order. Everything else lives in the drawer. */
-    private val dockFavourites = listOf(
-        "ar.tvplayer.tv",        // TiviMate
-        "com.android.vending"    // Google Play Store
-    )
-
     /**
      * (Re)builds the dock: one focusable tile per favourite, then the app
      * drawer tile, then Settings last.
      */
     private fun loadDock() {
         val allApps = loadLaunchableApps(packageManager, packageName)
-        val apps = dockFavourites.mapNotNull { pkg ->
+        val apps = loadFavouritePackages(this).mapNotNull { pkg ->
             allApps.find { it.packageName == pkg }
         }
         // v2.7: the two apps get wide banner tiles; the grid and Settings
@@ -228,8 +230,11 @@ class MainActivity : Activity() {
         // Tile lifts slightly on focus, over the red focus ring, and the
         // hero follows focus.
         tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-            val s = if (hasFocus) 1.12f else 1.0f
-            v.animate().scaleX(s).scaleY(s).setDuration(120).start()
+            val s = if (hasFocus) 1.25f else 1.0f
+            v.animate().scaleX(s).scaleY(s).setDuration(150).start()
+            // Apple TV style lift: the focused tile rises above its
+            // neighbours (elevation changes draw order, not layout).
+            v.elevation = if (hasFocus) dp(6).toFloat() else 0f
             if (hasFocus) updateHero(app)
         }
         return tile
@@ -267,8 +272,11 @@ class MainActivity : Activity() {
             }
         }
         tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-            val s = if (hasFocus) 1.12f else 1.0f
-            v.animate().scaleX(s).scaleY(s).setDuration(120).start()
+            val s = if (hasFocus) 1.25f else 1.0f
+            v.animate().scaleX(s).scaleY(s).setDuration(150).start()
+            // Apple TV style lift: the focused tile rises above its
+            // neighbours (elevation changes draw order, not layout).
+            v.elevation = if (hasFocus) dp(6).toFloat() else 0f
             if (hasFocus) updateHero(app)
         }
         return tile
@@ -394,4 +402,31 @@ fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> 
     }
     out.sortBy { it.label.lowercase(Locale.getDefault()) }
     return out
+}
+
+/**
+ * The dock favourites, in dock order, stored in SharedPreferences so
+ * Brian can edit them on the TV (FavoritesActivity). A plain comma-joined
+ * string, because a string set would not keep the order.
+ */
+private const val PREFS_NAME = "clean_tv_prefs"
+private const val PREF_FAVOURITES = "favourites"
+private val DEFAULT_FAVOURITES = listOf(
+    "ar.tvplayer.tv",        // TiviMate
+    "com.android.vending"    // Google Play Store
+)
+
+fun loadFavouritePackages(context: Context): List<String> {
+    val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(PREF_FAVOURITES, null)
+        ?: return DEFAULT_FAVOURITES
+    val list = raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    return list.ifEmpty { DEFAULT_FAVOURITES }
+}
+
+fun saveFavouritePackages(context: Context, packages: List<String>) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(PREF_FAVOURITES, packages.joinToString(","))
+        .apply()
 }
