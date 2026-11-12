@@ -71,8 +71,11 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
-    <!-- Bottom-centred dock: one row of tiles inside a frosted-glass pill
-         (v2.7, like the launcher in Brian's video). v2.3: a plain horizontal
+    <!-- Dock: one row of tiles inside a frosted-glass pill (v2.7, like the
+         launcher in Brian's video). v2.10: the top margin pushes the
+         vertically centred row down so its centre sits just below the
+         middle of the screen (marginTop shifts a centred view down by
+         half the margin: 270 + 50 = ~320dp of 540). v2.3: a plain horizontal
          LinearLayout of focusable tiles inside a HorizontalScrollView, NOT a
          GridView — a GridView swallows a short DPAD_CENTER press (its item
          click never fires for a short tap, only key repeats on a long press
@@ -83,7 +86,7 @@
         android:layout_height="84dp"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="100dp"
         android:background="@drawable/dock_pill"
         android:clipChildren="false"
         android:clipToPadding="false"
