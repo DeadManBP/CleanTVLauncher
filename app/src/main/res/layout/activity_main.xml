@@ -46,14 +46,18 @@
         android:textColor="#D8D8D8"
         android:textSize="20sp" />
 
-    <!-- Hero: the focused app's banner art (icon fallback), with its name below -->
+    <!-- Hero: the focused app's banner art (icon fallback), with its name below.
+         v2.9: kept small on purpose. The TV's screen is only 540dp tall
+         (density 2.0), so the old 230dp hero ran to ~70% of the screen and
+         the vertically centred dock overlapped it. This one ends ~216dp,
+         leaving a clear gap above the dock. -->
     <ImageView
         android:id="@+id/hero_banner"
-        android:layout_width="600dp"
-        android:layout_height="230dp"
+        android:layout_width="560dp"
+        android:layout_height="128dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="104dp"
+        android:layout_marginTop="48dp"
         android:scaleType="fitCenter" />
 
     <TextView
@@ -62,9 +66,9 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/hero_banner"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:textColor="#FFFFFF"
-        android:textSize="30sp"
+        android:textSize="24sp"
         android:textStyle="bold" />
 
     <!-- Bottom-centred dock: one row of tiles inside a frosted-glass pill
@@ -79,6 +83,7 @@
         android:layout_height="84dp"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
+        android:layout_marginTop="24dp"
         android:background="@drawable/dock_pill"
         android:clipChildren="false"
         android:clipToPadding="false"
