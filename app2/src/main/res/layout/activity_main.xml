@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/wallpaper_gradient">
+
+    <ImageView
+        android:id="@+id/wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/wallpaper_dim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:background="#80000000"
+        android:visibility="gone" />
+
+    <!-- Big clock + date, top-left, tvOS style -->
+    <TextView
+        android:id="@+id/clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="28dp"
+        android:layout_marginStart="40dp"
+        android:textColor="#FFFFFF"
+        android:textSize="52sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/clock"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="2dp"
+        android:textColor="#D8D8D8"
+        android:textSize="20sp" />
+
+    <!-- Hero: the focused app's banner art (icon fallback), with its name below.
+         v2.9: kept small on purpose. The TV's screen is only 540dp tall
+         (density 2.0), so the old 230dp hero ran to ~70% of the screen and
+         the vertically centred dock overlapped it. This one ends ~216dp,
+         leaving a clear gap above the dock. -->
+    <ImageView
+        android:id="@+id/hero_banner"
+        android:layout_width="560dp"
+        android:layout_height="128dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="48dp"
+        android:scaleType="fitCenter" />
+
+    <TextView
+        android:id="@+id/hero_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/hero_banner"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <!-- Dock: one row of tiles inside a frosted-glass pill (v2.7, like the
+         launcher in Brian's video). v2.10: the top margin pushes the
+         vertically centred row down so its centre sits just below the
+         middle of the screen (marginTop shifts a centred view down by
+         half the margin: 270 + 50 = ~320dp of 540). v2.3: a plain horizontal
+         LinearLayout of focusable tiles inside a HorizontalScrollView, NOT a
+         GridView — a GridView swallows a short DPAD_CENTER press (its item
+         click never fires for a short tap, only key repeats on a long press
+         leak through), which is why v2.0–v2.2 all needed a long press. -->
+    <HorizontalScrollView
+        android:id="@+id/dock_scroll"
+        android:layout_width="wrap_content"
+        android:layout_height="84dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:translationY="50dp"
+        android:background="@drawable/dock_pill"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/app_dock"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:gravity="center"
+            android:orientation="horizontal" />
+
+    </HorizontalScrollView>
+
+</RelativeLayout>
