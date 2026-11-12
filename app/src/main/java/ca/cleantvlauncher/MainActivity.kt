@@ -48,6 +48,10 @@ import java.util.Locale
  *
  * v2.6: the dock only shows Brian's favourites (TiviMate, Play Store,
  * Settings, in that order). Everything else lives in the drawer.
+ *
+ * v2.7: the dock sits in a frosted-glass pill (like the launcher in
+ * Brian's video) and the app tiles are wide banner tiles; the grid and
+ * Settings tiles stay small square icons at the end of the pill.
  */
 class MainActivity : Activity() {
 
@@ -140,18 +144,22 @@ class MainActivity : Activity() {
         val apps = dockFavourites.mapNotNull { pkg ->
             allApps.find { it.packageName == pkg }
         }
-        // Size tiles so the whole dock fits on screen when it can: the
-        // screen width in dp, minus 32dp of side breathing room, split
-        // evenly across the apps plus the two special tiles, capped at 68dp.
-        // The HorizontalScrollView stays as a fallback if the count ever
-        // outgrows the screen.
+        // v2.7: the two apps get wide banner tiles; the grid and Settings
+        // tiles stay small square icons. Banner width is the screen width
+        // minus 32dp of side breathing room, minus the pill's 24dp of
+        // padding, minus 6dp of margin per tile, minus the two small tiles,
+        // split between the banners and capped at 176dp.
         val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-        val count = (apps.size + 2).coerceAtLeast(1)
-        val tileWidthDp = minOf(68, ((screenWidthDp - 32) / count).toInt() - 6)
-            .coerceAtLeast(44)
+        val smallTileDp = 64
+        val totalTiles = apps.size + 2
+        val bannerWidthDp = minOf(
+            176,
+            ((screenWidthDp - 32 - 24 - totalTiles * 6 - 2 * smallTileDp) /
+                apps.size.coerceAtLeast(1)).toInt()
+        ).coerceAtLeast(120)
         dock.removeAllViews()
         for (app in apps) {
-            dock.addView(makeDockTile(app, tileWidthDp))
+            dock.addView(makeBannerDockTile(app, bannerWidthDp))
         }
         // App drawer tile (grid icon), then Settings last.
         val drawerIcon: Drawable = getDrawable(R.drawable.ic_apps_grid)!!
@@ -164,7 +172,7 @@ class MainActivity : Activity() {
                     null,
                     Intent(this, AppDrawerActivity::class.java)
                 ),
-                tileWidthDp
+                smallTileDp
             )
         )
         val settingsIcon: Drawable = getDrawable(android.R.drawable.ic_menu_preferences)
@@ -178,7 +186,7 @@ class MainActivity : Activity() {
                     null,
                     Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 ),
-                tileWidthDp
+                smallTileDp
             )
         )
         if (apps.isNotEmpty()) {
@@ -219,6 +227,45 @@ class MainActivity : Activity() {
         }
         // Tile lifts slightly on focus, over the red focus ring, and the
         // hero follows focus.
+        tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+            val s = if (hasFocus) 1.12f else 1.0f
+            v.animate().scaleX(s).scaleY(s).setDuration(120).start()
+            if (hasFocus) updateHero(app)
+        }
+        return tile
+    }
+
+    /** One wide banner dock tile for a real app (v2.7 glass pill). */
+    private fun makeBannerDockTile(app: AppEntry, bannerWidthDp: Int): View {
+        val tile = LayoutInflater.from(this).inflate(R.layout.item_app_banner, dock, false)
+        val bannerView = tile.findViewById<ImageView>(R.id.app_banner)
+        bannerView.setImageDrawable(app.banner ?: app.icon)
+        tile.contentDescription = app.label
+        tile.tag = app
+        tile.isFocusable = true
+        tile.isFocusableInTouchMode = true
+        // Trims the banner's square corners to the focus ring's curve.
+        tile.clipToOutline = true
+        val params = LinearLayout.LayoutParams(dp(bannerWidthDp), dp(64))
+        params.marginStart = dp(3)
+        params.marginEnd = dp(3)
+        tile.layoutParams = params
+        // Same wiring as a square tile: a plain tile (no AdapterView above
+        // it) gets the centre key directly, so both the key-down handler
+        // and the click handler work for a short tap; launchApp()'s guard
+        // dedupes them.
+        tile.setOnClickListener { launchApp(app) }
+        tile.setOnKeyListener { _, keyCode, event ->
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                        keyCode == KeyEvent.KEYCODE_ENTER) &&
+                event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
+            ) {
+                launchApp(app)
+                true
+            } else {
+                false
+            }
+        }
         tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
             val s = if (hasFocus) 1.12f else 1.0f
             v.animate().scaleX(s).scaleY(s).setDuration(120).start()
