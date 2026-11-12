@@ -31,18 +31,43 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.CLEAN_TV_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Missing CLEAN_TV_KEYSTORE_BASE64 repository secret."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/cleantv-release.p12"
+          test -s "$RUNNER_TEMP/cleantv-release.p12"
 
-      - name: Upload APK
+      - name: Build debug and signed release APKs
+        env:
+          CLEAN_TV_KEYSTORE_PATH: ${{ runner.temp }}/cleantv-release.p12
+          CLEAN_TV_KEYSTORE_PASSWORD: ${{ secrets.CLEAN_TV_KEYSTORE_PASSWORD }}
+          CLEAN_TV_KEY_ALIAS: ${{ secrets.CLEAN_TV_KEY_ALIAS }}
+          CLEAN_TV_KEY_PASSWORD: ${{ secrets.CLEAN_TV_KEY_PASSWORD }}
+        run: |
+          if [ -z "$CLEAN_TV_KEYSTORE_PASSWORD" ] || [ -z "$CLEAN_TV_KEY_ALIAS" ] || [ -z "$CLEAN_TV_KEY_PASSWORD" ]; then
+            echo "One or more release signing secrets are missing."
+            exit 1
+          fi
+          gradle assembleDebug assembleRelease --no-daemon
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: CleanTVLauncher-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: CleanTVLauncher-apks
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
           name: Clean TV Build ${{ github.run_number }}
-          files: app/build/outputs/apk/debug/*.apk
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
