@@ -15,8 +15,26 @@ android {
         versionName = "2.0"
     }
 
+    signingConfigs {
+        create("stable") {
+            // Supplied only by GitHub Actions secrets. Never commit the keystore.
+            val storeFilePath = System.getenv("CLEANTV_KEYSTORE_FILE")
+            if (!storeFilePath.isNullOrBlank()) {
+                storeFile = file(storeFilePath)
+            }
+            storePassword = System.getenv("CLEANTV_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("CLEANTV_KEY_ALIAS")
+            keyPassword = System.getenv("CLEANTV_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         debug {
+            // CI assigns the permanent signing key; local builds retain the
+            // standard Android debug key until the permanent key is configured.
+            if (!System.getenv("CLEANTV_KEYSTORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("stable")
+            }
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
         }
