@@ -15,9 +15,30 @@ android {
         versionName = "2.11"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("CLEAN_TV_KEYSTORE_PATH")
+            val keystorePassword = System.getenv("CLEAN_TV_KEYSTORE_PASSWORD")
+            val keyAliasValue = System.getenv("CLEAN_TV_KEY_ALIAS")
+            val keyPasswordValue = System.getenv("CLEAN_TV_KEY_PASSWORD")
+
+            if (!keystorePath.isNullOrBlank() &&
+                !keystorePassword.isNullOrBlank() &&
+                !keyAliasValue.isNullOrBlank() &&
+                !keyPasswordValue.isNullOrBlank()
+            ) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -30,4 +51,3 @@ android {
         jvmTarget = "17"
     }
 }
-
