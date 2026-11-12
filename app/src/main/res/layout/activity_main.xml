@@ -77,13 +77,14 @@
         android:id="@+id/dock_scroll"
         android:layout_width="wrap_content"
         android:layout_height="84dp"
-        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="16dp"
+        android:layout_centerVertical="true"
         android:background="@drawable/dock_pill"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
         android:scrollbars="none">
@@ -92,6 +93,7 @@
             android:id="@+id/app_dock"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:clipChildren="false"
             android:gravity="center"
             android:orientation="horizontal" />
 
