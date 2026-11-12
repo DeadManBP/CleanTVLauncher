@@ -64,6 +64,9 @@ import java.util.Locale
  * v2.9: the v2.8 centred dock overlapped the hero — the screen is only
  * 540dp tall (density 2.0), so the 230dp hero ran to ~70% of the screen.
  * Hero shrunk to 128dp and the dock nudged down, so the two clear.
+ *
+ * v2.10: the dock still read as top-half, so it moved further down — its
+ * centre now sits just below the middle of the screen (~320dp of 540).
  */
 class MainActivity : Activity() {
 
