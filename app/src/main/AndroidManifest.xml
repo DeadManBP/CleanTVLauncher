@@ -46,5 +46,13 @@
             android:name=".AppDrawerActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
+        <!-- Favourites editor (v2.8): star apps into the dock and reorder
+             them. Missing this entry was why the drawer's Edit favourites
+             tile did nothing — starting an undeclared activity throws, and
+             the drawer swallows the exception. -->
+        <activity
+            android:name=".FavoritesActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
     </application>
 </manifest>
