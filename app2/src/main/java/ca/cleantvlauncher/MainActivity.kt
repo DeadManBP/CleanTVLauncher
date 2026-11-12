@@ -423,8 +423,8 @@ fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> 
 private const val PREFS_NAME = "clean_tv_prefs"
 private const val PREF_FAVOURITES = "favourites"
 private val DEFAULT_FAVOURITES = listOf(
-    "ar.tvplayer.tv",        // TiviMate
-    "com.android.vending"    // Google Play Store
+    "ar.tvplayer.tv",                    // TiviMate
+    "com.amazon.amazonvideo.livingroom"   // Prime Video
 )
 
 fun loadFavouritePackages(context: Context): List<String> {
