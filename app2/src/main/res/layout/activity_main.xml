@@ -22,7 +22,7 @@
         android:background="#80000000"
         android:visibility="gone" />
 
-    <!-- Big clock + date, top-left, tvOS style -->
+    <!-- Main identity and live clock -->
     <TextView
         android:id="@+id/clock"
         android:layout_width="wrap_content"
@@ -32,7 +32,7 @@
         android:layout_marginTop="28dp"
         android:layout_marginStart="40dp"
         android:textColor="#FFFFFF"
-        android:textSize="52sp"
+        android:textSize="48sp"
         android:textStyle="bold" />
 
     <TextView
@@ -44,7 +44,7 @@
         android:layout_marginStart="40dp"
         android:layout_marginTop="2dp"
         android:textColor="#D8D8D8"
-        android:textSize="20sp" />
+        android:textSize="18sp" />
 
     <!-- Hero: the focused app's banner art (icon fallback), with its name below.
          v2.9: kept small on purpose. The TV's screen is only 540dp tall
@@ -57,7 +57,7 @@
         android:layout_height="128dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="54dp"
         android:scaleType="fitCenter" />
 
     <TextView
@@ -68,10 +68,10 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="8dp"
         android:textColor="#FFFFFF"
-        android:textSize="24sp"
+        android:textSize="26sp"
         android:textStyle="bold" />
 
-    <!-- Dock: one row of tiles inside a frosted-glass pill (v2.7, like the
+    <!-- Bottom dock: one row of tiles inside a frosted-glass pill (v2.7, like the
          launcher in Brian's video). v2.10: the top margin pushes the
          vertically centred row down so its centre sits just below the
          middle of the screen (marginTop shifts a centred view down by
@@ -85,8 +85,8 @@
         android:layout_width="wrap_content"
         android:layout_height="84dp"
         android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:translationY="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="76dp"
         android:background="@drawable/dock_pill"
         android:clipChildren="false"
         android:clipToPadding="false"
