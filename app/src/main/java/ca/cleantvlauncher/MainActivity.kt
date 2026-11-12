@@ -67,6 +67,10 @@ import java.util.Locale
  *
  * v2.10: the dock still read as top-half, so it moved further down — its
  * centre now sits just below the middle of the screen (~320dp of 540).
+ *
+ * v2.11: the favourites editor opened with nothing focused, so centre
+ * presses went nowhere and no edit ever landed (the dock never moved).
+ * The editor now focuses the first star on open.
  */
 class MainActivity : Activity() {
 
