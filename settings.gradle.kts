@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "CleanTVLauncher"
-include(":app")
+include(":app", ":app2")
