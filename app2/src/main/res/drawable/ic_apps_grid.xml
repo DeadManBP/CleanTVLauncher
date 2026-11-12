@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3x3 grid glyph for the app-drawer tile at the end of the dock. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2,2h6v6H2z M10,2h6v6h-6z M18,2h6v6h-6z M2,10h6v6H2z M10,10h6v6h-6z M18,10h6v6h-6z M2,18h6v6H2z M10,18h6v6h-6z M18,18h6v6h-6z" />
+</vector>
