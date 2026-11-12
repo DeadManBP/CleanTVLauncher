@@ -59,6 +59,17 @@ class FavoritesActivity : Activity() {
                 focusView = row.findViewWithTag("fav:$focusKind:${app.packageName}")
             }
         }
+        if (focusView == null) {
+            // First open (v2.11 fix): focus the first star straight away.
+            // Before this the editor opened with NOTHING focused, so centre
+            // presses went nowhere, no star ever toggled, and the dock
+            // never changed — even though the editor itself looked fine.
+            val firstPkg = favs.firstOrNull()
+                ?: all.firstOrNull()?.packageName
+            if (firstPkg != null) {
+                focusView = container.findViewWithTag("fav:star:$firstPkg")
+            }
+        }
         focusView?.post { focusView?.requestFocus() }
     }
 
