@@ -24,8 +24,7 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$KEYSTORE_B64" || -z "$STORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::error::Permanent signing secrets are missing. Refusing to publish an unsigned test APK."
+            echo "::error::Permanent signing secrets are missing. Refusing to publish unsigned APKs."
             exit 1
           fi
           echo "configured=true" >> "$GITHUB_OUTPUT"
@@ -60,31 +59,41 @@ jobs:
           echo "CLEANTV_KEYSTORE_FILE=$RUNNER_TEMP/cleantv-release.jks" >> "$GITHUB_ENV"
 
       - name: Run unit tests and Android lint
-        run: gradle :app2:testDebugUnitTest :app2:lintDebug --no-daemon
+        run: gradle :app2:testDebugUnitTest :app2:lintDebug :app2:lintRelease --no-daemon
 
-      - name: Build CleanTV 2.0 signed test APK
+      - name: Build signed development and release APKs
         env:
           CLEANTV_KEYSTORE_PASSWORD: ${{ secrets.CLEANTV_KEYSTORE_PASSWORD }}
           CLEANTV_KEY_ALIAS: ${{ secrets.CLEANTV_KEY_ALIAS }}
           CLEANTV_KEY_PASSWORD: ${{ secrets.CLEANTV_KEY_PASSWORD }}
-        run: gradle :app2:assembleDebug --no-daemon
+        run: gradle :app2:assembleDebug :app2:assembleRelease --no-daemon
 
-      - name: Verify APK signing certificate
+      - name: Verify development and release APK certificates
         env:
           STORE_PASSWORD: ${{ secrets.CLEANTV_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.CLEANTV_KEY_ALIAS }}
         run: |
           set -euo pipefail
           EXPECTED=$(keytool -exportcert -keystore "$RUNNER_TEMP/cleantv-release.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sha256sum | awk '{print toupper($1)}')
-          ACTUAL=$( "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs app2/build/outputs/apk/debug/app2-debug.apk | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {gsub(":","",$2); print toupper($2)}')
-          echo "Expected certificate SHA-256: $EXPECTED"
-          echo "APK certificate SHA-256:      $ACTUAL"
-          test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
+          for APK in app2/build/outputs/apk/debug/app2-debug.apk app2/build/outputs/apk/release/app2-release.apk; do
+            ACTUAL=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {gsub(":","",$2); print toupper($2)}')
+            echo "$APK certificate SHA-256: $ACTUAL"
+            test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
+          done
+          echo "Both APKs match the permanent CleanTV signing certificate."
 
-      - name: Upload signed test APK
+      - name: Upload signed development APK
         uses: actions/upload-artifact@v4
         with:
           name: CleanTV-2.0-dev-signed
           path: app2/build/outputs/apk/debug/app2-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload signed release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CleanTV-2.0-release-signed
+          path: app2/build/outputs/apk/release/app2-release.apk
           if-no-files-found: error
           retention-days: 30
