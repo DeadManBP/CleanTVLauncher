@@ -67,6 +67,18 @@ jobs:
           CLEANTV_KEY_PASSWORD: ${{ secrets.CLEANTV_KEY_PASSWORD }}
         run: gradle :app2:assembleDebug --no-daemon
 
+      - name: Verify APK signing certificate
+        if: steps.signing.outputs.configured == 'true'
+        env:
+          STORE_PASSWORD: ${{ secrets.CLEANTV_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CLEANTV_KEY_ALIAS }}
+        run: |
+          EXPECTED=$(keytool -exportcert -keystore "$RUNNER_TEMP/cleantv-release.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sha256sum | awk '{print toupper($1)}')
+          ACTUAL=$( "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs app2/build/outputs/apk/debug/app2-debug.apk | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {gsub(":","",$2); print toupper($2)}')
+          echo "Expected certificate SHA-256: $EXPECTED"
+          echo "APK certificate SHA-256:      $ACTUAL"
+          test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
+
       - name: Upload signed test APK
         if: steps.signing.outputs.configured == 'true'
         uses: actions/upload-artifact@v4
