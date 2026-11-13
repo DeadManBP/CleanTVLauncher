@@ -25,42 +25,44 @@ jobs:
         run: |
           if [[ -z "$KEYSTORE_B64" || -z "$STORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Permanent signing secrets are not configured. No APK will be built."
-            exit 0
+            echo "::error::Permanent signing secrets are missing. Refusing to publish an unsigned test APK."
+            exit 1
           fi
           echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
-        if: steps.signing.outputs.configured == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Android SDK
-        if: steps.signing.outputs.configured == 'true'
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK packages
-        if: steps.signing.outputs.configured == 'true'
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle
-        if: steps.signing.outputs.configured == 'true'
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.9"
 
-      - name: Prepare permanent signing key
-        if: steps.signing.outputs.configured == 'true'
+      - name: Prepare and validate permanent signing key
         env:
           KEYSTORE_B64: ${{ secrets.CLEANTV_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.CLEANTV_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CLEANTV_KEY_ALIAS }}
         run: |
-          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/cleantv-release.jks"
+          set -euo pipefail
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/cleantv-release.jks"
+          test -s "$RUNNER_TEMP/cleantv-release.jks"
+          keytool -list -keystore "$RUNNER_TEMP/cleantv-release.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
           echo "CLEANTV_KEYSTORE_FILE=$RUNNER_TEMP/cleantv-release.jks" >> "$GITHUB_ENV"
 
+      - name: Run unit tests and Android lint
+        run: gradle :app2:testDebugUnitTest :app2:lintDebug --no-daemon
+
       - name: Build CleanTV 2.0 signed test APK
-        if: steps.signing.outputs.configured == 'true'
         env:
           CLEANTV_KEYSTORE_PASSWORD: ${{ secrets.CLEANTV_KEYSTORE_PASSWORD }}
           CLEANTV_KEY_ALIAS: ${{ secrets.CLEANTV_KEY_ALIAS }}
@@ -68,11 +70,11 @@ jobs:
         run: gradle :app2:assembleDebug --no-daemon
 
       - name: Verify APK signing certificate
-        if: steps.signing.outputs.configured == 'true'
         env:
           STORE_PASSWORD: ${{ secrets.CLEANTV_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.CLEANTV_KEY_ALIAS }}
         run: |
+          set -euo pipefail
           EXPECTED=$(keytool -exportcert -keystore "$RUNNER_TEMP/cleantv-release.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sha256sum | awk '{print toupper($1)}')
           ACTUAL=$( "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs app2/build/outputs/apk/debug/app2-debug.apk | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {gsub(":","",$2); print toupper($2)}')
           echo "Expected certificate SHA-256: $EXPECTED"
@@ -80,8 +82,9 @@ jobs:
           test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
 
       - name: Upload signed test APK
-        if: steps.signing.outputs.configured == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: CleanTV-2.0-dev-signed
           path: app2/build/outputs/apk/debug/app2-debug.apk
+          if-no-files-found: error
+          retention-days: 30
