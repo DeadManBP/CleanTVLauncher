@@ -153,7 +153,7 @@ class MainActivity : Activity() {
     /**
      * Keep the dock at a stable point on the screen even if Android TV
      * reports a different usable display height during a cold boot.
-     * Position its centre at 59% of the content height, matching the
+     * Position its centre at 80% of the content height, matching the
      * intended slightly-below-middle composition.
      */
     private fun positionDockConsistently() {
@@ -166,7 +166,7 @@ class MainActivity : Activity() {
                 ?: return@post
             params.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
             params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_TOP)
-            params.topMargin = (availableHeight * 0.59f - dockScroll.height / 2f)
+            params.topMargin = (availableHeight * 0.80f - dockScroll.height / 2f)
                 .toInt().coerceAtLeast(dp(8))
             params.bottomMargin = 0
             dockScroll.layoutParams = params
