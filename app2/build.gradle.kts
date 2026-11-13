@@ -39,6 +39,11 @@ android {
             versionNameSuffix = "-dev"
         }
         release {
+            // Release APK uses the same permanent key as the development APK,
+            // but keeps the clean package ID (without the .dev suffix).
+            if (!System.getenv("CLEANTV_KEYSTORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("stable")
+            }
             isMinifyEnabled = false
         }
     }
