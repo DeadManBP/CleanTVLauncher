@@ -109,6 +109,7 @@ class MainActivity : Activity() {
         loadDock()
         maybeRequestStoragePermission()
         loadWallpaper()
+        positionDockConsistently()
         clockHandler.post(clockTick)
     }
 
@@ -148,6 +149,30 @@ class MainActivity : Activity() {
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
         ).toInt()
+
+    /**
+     * Keep the dock at a stable point on the screen even if Android TV
+     * reports a different usable display height during a cold boot.
+     * Position its centre at 59% of the content height, matching the
+     * intended slightly-below-middle composition.
+     */
+    private fun positionDockConsistently() {
+        val content = findViewById<View>(android.R.id.content)
+        val dockScroll = findViewById<View>(R.id.dock_scroll)
+        content.post {
+            val availableHeight = content.height
+            if (availableHeight <= 0 || dockScroll.height <= 0) return@post
+            val params = dockScroll.layoutParams as? android.widget.RelativeLayout.LayoutParams
+                ?: return@post
+            params.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
+            params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_TOP)
+            params.topMargin = (availableHeight * 0.59f - dockScroll.height / 2f)
+                .toInt().coerceAtLeast(dp(8))
+            params.bottomMargin = 0
+            dockScroll.layoutParams = params
+        }
+    }
+
 
     /**
      * (Re)builds the dock: one focusable tile per favourite, then the app
