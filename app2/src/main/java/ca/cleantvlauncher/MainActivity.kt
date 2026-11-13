@@ -350,8 +350,11 @@ class MainActivity : Activity() {
         }
 
         // Backward-compatible fallback for the original named wallpaper files.
-        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) ==
-            PackageManager.PERMISSION_GRANTED
+        if (checkPermission(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.os.Process.myPid(),
+                android.os.Process.myUid()
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
             val dirs = listOf(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
