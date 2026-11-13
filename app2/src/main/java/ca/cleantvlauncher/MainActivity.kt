@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -335,14 +336,12 @@ class MainActivity : Activity() {
         if (!savedUri.isNullOrBlank()) {
             try {
                 val uri = android.net.Uri.parse(savedUri)
-                contentResolver.openInputStream(uri).use { stream ->
-                    val bmp = stream?.let { BitmapFactory.decodeStream(it) }
-                    if (bmp != null) {
-                        wallpaperView.setImageBitmap(bmp)
-                        wallpaperView.visibility = View.VISIBLE
-                        wallpaperDim.visibility = View.VISIBLE
-                        return
-                    }
+                val bmp = decodeWallpaper(uri)
+                if (bmp != null) {
+                    wallpaperView.setImageBitmap(bmp)
+                    wallpaperView.visibility = View.VISIBLE
+                    wallpaperDim.visibility = View.VISIBLE
+                    return
                 }
             } catch (_: Exception) {
                 // If the image was deleted or access revoked, fall back safely.
@@ -364,7 +363,7 @@ class MainActivity : Activity() {
                 for (name in listOf("cleantv-wallpaper.jpg", "cleantv-wallpaper.png")) {
                     val f = File(dir, name)
                     if (f.exists()) {
-                        val bmp = BitmapFactory.decodeFile(f.absolutePath)
+                        val bmp = decodeWallpaperFile(f)
                         if (bmp != null) {
                             wallpaperView.setImageBitmap(bmp)
                             wallpaperView.visibility = View.VISIBLE
@@ -377,6 +376,46 @@ class MainActivity : Activity() {
         }
         wallpaperView.visibility = View.GONE
         wallpaperDim.visibility = View.GONE
+    }
+
+    /**
+     * Decode wallpaper images near the TV's display resolution instead of
+     * loading the original camera-sized file into memory. A 4K phone photo
+     * can otherwise consume tens of megabytes just for one bitmap.
+     */
+    private fun wallpaperDecodeOptions(sourceWidth: Int, sourceHeight: Int): BitmapFactory.Options {
+        val targetWidth = resources.displayMetrics.widthPixels.coerceAtLeast(1)
+        val targetHeight = resources.displayMetrics.heightPixels.coerceAtLeast(1)
+        var sample = 1
+        while (sourceWidth / (sample * 2) >= targetWidth &&
+            sourceHeight / (sample * 2) >= targetHeight
+        ) {
+            sample *= 2
+        }
+        return BitmapFactory.Options().apply { inSampleSize = sample }
+    }
+
+    private fun decodeWallpaper(uri: android.net.Uri): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        contentResolver.openInputStream(uri).use { stream ->
+            if (stream == null) return null
+            BitmapFactory.decodeStream(stream, null, bounds)
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val options = wallpaperDecodeOptions(bounds.outWidth, bounds.outHeight)
+        return contentResolver.openInputStream(uri).use { stream ->
+            if (stream == null) null else BitmapFactory.decodeStream(stream, null, options)
+        }
+    }
+
+    private fun decodeWallpaperFile(file: File): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        return BitmapFactory.decodeFile(
+            file.absolutePath,
+            wallpaperDecodeOptions(bounds.outWidth, bounds.outHeight)
+        )
     }
 
     override fun onDestroy() {
