@@ -308,7 +308,10 @@ class MainActivity : Activity() {
     }
 
     private fun maybeRequestStoragePermission() {
-        if (checkPermission(
+        // Runtime storage permissions were introduced in Android 6.0 (API 23).
+        // On API 21–22, manifest permissions are granted at install time.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
+            checkPermission(
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 android.os.Process.myPid(),
                 android.os.Process.myUid()
