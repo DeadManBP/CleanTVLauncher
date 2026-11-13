@@ -308,8 +308,11 @@ class MainActivity : Activity() {
     }
 
     private fun maybeRequestStoragePermission() {
-        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) !=
-            PackageManager.PERMISSION_GRANTED
+        if (checkPermission(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.os.Process.myPid(),
+                android.os.Process.myUid()
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 1)
         }
