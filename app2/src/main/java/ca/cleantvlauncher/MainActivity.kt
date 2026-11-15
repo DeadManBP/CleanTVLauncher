@@ -153,6 +153,9 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // Apply clock/date preferences immediately when returning from Settings.
+        // The periodic tick remains as a fallback for keeping the clock current.
+        applyClockAndDateOptions()
         // Refresh in case apps changed while we were away.
         loadDock()
         loadWallpaper()
