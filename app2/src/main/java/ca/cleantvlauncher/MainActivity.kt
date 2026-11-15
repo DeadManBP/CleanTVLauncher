@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Environment
@@ -117,6 +118,13 @@ class MainActivity : Activity() {
         dateView = findViewById(R.id.date)
         heroBanner = findViewById(R.id.hero_banner)
         heroLabel = findViewById(R.id.hero_label)
+        // Match the industrial CleanTV typography across the home screen.
+        clock.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+        clock.letterSpacing = 0.015f
+        dateView.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        dateView.letterSpacing = 0.025f
+        heroLabel.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+        heroLabel.letterSpacing = 0.02f
         wallpaperView = findViewById(R.id.wallpaper)
         wallpaperDim = findViewById(R.id.wallpaper_dim)
         loadDock()
