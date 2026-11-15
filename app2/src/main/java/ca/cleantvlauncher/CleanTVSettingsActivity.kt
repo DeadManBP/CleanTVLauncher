@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -38,19 +39,22 @@ class CleanTVSettingsActivity : Activity() {
         root.addView(TextView(this).apply {
             text = "CLEANTV  /  CONTROL CENTER"
             textSize = 13f
-            letterSpacing = 0.16f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            letterSpacing = 0.18f
             setTextColor(accentColor)
             setPadding(0, 0, 0, dp(7))
         })
         root.addView(TextView(this).apply {
             text = "Settings"
-            textSize = 34f
+            textSize = 36f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
             setTextColor(Color.WHITE)
             setPadding(0, 0, 0, dp(4))
         })
         root.addView(TextView(this).apply {
             text = "Make the screen yours. No clutter. No nonsense."
             textSize = 15f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             setTextColor(mutedColor)
             setPadding(0, 0, 0, dp(22))
         })
@@ -114,7 +118,8 @@ class CleanTVSettingsActivity : Activity() {
         root.addView(TextView(this).apply {
             text = "CLEANTV 2.0   •   BUILT FOR THE BIG SCREEN"
             textSize = 11f
-            letterSpacing = 0.10f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            letterSpacing = 0.12f
             setTextColor(Color.rgb(105, 114, 128))
             setPadding(0, dp(22), 0, dp(8))
         })
@@ -141,13 +146,15 @@ class CleanTVSettingsActivity : Activity() {
         root.addView(TextView(this).apply {
             text = title
             textSize = 13f
-            letterSpacing = 0.12f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            letterSpacing = 0.14f
             setTextColor(accentColor)
             setPadding(0, 0, 0, dp(3))
         })
         root.addView(TextView(this).apply {
             text = subtitle
             textSize = 14f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             setTextColor(mutedColor)
             setPadding(0, 0, 0, dp(10))
         })
@@ -159,6 +166,7 @@ class CleanTVSettingsActivity : Activity() {
         Button(this).apply {
             text = "$title\n$description"
             textSize = 16f
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAllCaps = false
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             setPadding(dp(18), dp(5), dp(18), dp(5))
