@@ -40,6 +40,32 @@ class CleanTVSettingsActivity : Activity() {
         root.addView(makeButton("Wallpaper display: Fit entire image") { setWallpaperMode("fit") })
         root.addView(makeButton("Wallpaper display: Stretch") { setWallpaperMode("stretch") })
         root.addView(makeButton("Wallpaper display: Center original size") { setWallpaperMode("center") })
+        root.addView(makeButton("Clock: " + if (prefs.getBoolean("show_clock", true)) "On" else "Off") {
+            prefs.edit().putBoolean("show_clock", !prefs.getBoolean("show_clock", true)).apply()
+            returnToHome()
+        })
+        root.addView(makeButton("Date: " + if (prefs.getBoolean("show_date", true)) "On" else "Off") {
+            prefs.edit().putBoolean("show_date", !prefs.getBoolean("show_date", true)).apply()
+            returnToHome()
+        })
+        root.addView(makeButton("Time format: " + if (prefs.getString("clock_format", "12h") == "12h") "12-hour" else "24-hour") {
+            val next = if (prefs.getString("clock_format", "12h") == "12h") "24h" else "12h"
+            prefs.edit().putString("clock_format", next).apply()
+            returnToHome()
+        })
+        root.addView(makeButton("Date format: " + when (prefs.getString("date_format", "full")) {
+            "short" -> "Month day, year"
+            "weekday" -> "Short weekday"
+            else -> "Full weekday"
+        }) {
+            val next = when (prefs.getString("date_format", "full")) {
+                "full" -> "weekday"
+                "weekday" -> "short"
+                else -> "full"
+            }
+            prefs.edit().putString("date_format", next).apply()
+            returnToHome()
+        })
         root.addView(makeButton("Use default CleanTV wallpaper") {
             prefs.edit().remove("wallpaper_uri").remove("wallpaper_file_path").apply()
             File(filesDir, "selected-wallpaper").delete()
@@ -75,6 +101,11 @@ class CleanTVSettingsActivity : Activity() {
             }
             setOnClickListener { action() }
         }
+
+    private fun returnToHome() {
+        setResult(Activity.RESULT_OK)
+        finish()
+    }
 
     private fun setWallpaperMode(mode: String) {
         prefs.edit().putString("wallpaper_scale_mode", mode).apply()
