@@ -44,6 +44,10 @@
             android:name=".CleanTVSettingsActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
+        <activity
+            android:name=".WallpaperBrowserActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
         <!-- App drawer: full-screen grid of every app, opened from the
              grid tile at the end of the home dock. -->
         <activity
