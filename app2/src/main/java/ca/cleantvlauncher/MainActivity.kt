@@ -363,7 +363,7 @@ class MainActivity : Activity() {
                 val uri = android.net.Uri.parse(savedUri)
                 val bmp = decodeWallpaper(uri)
                 if (bmp != null) {
-                    wallpaperView.setImageBitmap(bmp)
+                    applyWallpaperBitmap(bmp)
                     wallpaperView.visibility = View.VISIBLE
                     wallpaperDim.visibility = View.VISIBLE
                     return
@@ -390,7 +390,7 @@ class MainActivity : Activity() {
                     if (f.exists()) {
                         val bmp = decodeWallpaperFile(f)
                         if (bmp != null) {
-                            wallpaperView.setImageBitmap(bmp)
+                            applyWallpaperBitmap(bmp)
                             wallpaperView.visibility = View.VISIBLE
                             wallpaperDim.visibility = View.VISIBLE
                             return
@@ -401,6 +401,19 @@ class MainActivity : Activity() {
         }
         wallpaperView.visibility = View.GONE
         wallpaperDim.visibility = View.GONE
+    }
+
+    /** Apply the saved wallpaper display mode consistently to every source. */
+    private fun applyWallpaperBitmap(bitmap: Bitmap) {
+        val mode = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+            .getString("wallpaper_scale_mode", "fill")
+        wallpaperView.scaleType = when (mode) {
+            "fit" -> ImageView.ScaleType.FIT_CENTER
+            "stretch" -> ImageView.ScaleType.FIT_XY
+            "center" -> ImageView.ScaleType.CENTER
+            else -> ImageView.ScaleType.CENTER_CROP
+        }
+        wallpaperView.setImageBitmap(bitmap)
     }
 
     /**
