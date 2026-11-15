@@ -165,8 +165,9 @@ class CleanTVSettingsActivity : Activity() {
     private fun makeButton(title: String, description: String, action: () -> Unit): Button =
         Button(this).apply {
             text = "$title\n$description"
-            textSize = 16f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            textSize = 17f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            letterSpacing = 0.015f
             isAllCaps = false
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             setPadding(dp(18), dp(5), dp(18), dp(5))
