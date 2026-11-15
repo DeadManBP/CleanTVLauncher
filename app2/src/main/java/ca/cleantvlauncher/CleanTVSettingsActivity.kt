@@ -10,17 +10,16 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import java.io.File
+import java.io.FileOutputStream
 
-/** CleanTV's own settings. Wallpaper selection uses Android's document picker
- * and a persisted URI permission, so users can choose images without storage
- * permission or copying files into special folders. */
+/** CleanTV settings and TV-compatible wallpaper import. */
 class CleanTVSettingsActivity : Activity() {
 
     private val prefs by lazy { getSharedPreferences("clean_tv_prefs", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP
@@ -28,44 +27,33 @@ class CleanTVSettingsActivity : Activity() {
             setBackgroundColor(Color.rgb(15, 16, 20))
             isFocusable = false
         }
-
         root.addView(TextView(this).apply {
-            text = "CleanTV Settings"
-            textSize = 32f
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, dp(8))
+            text = "CleanTV Settings"; textSize = 32f
+            setTextColor(Color.WHITE); setPadding(0, 0, 0, dp(8))
         })
         root.addView(TextView(this).apply {
-            text = "PERSONALIZE YOUR HOME SCREEN"
-            textSize = 14f
-            setTextColor(Color.rgb(190, 190, 200))
-            setPadding(0, 0, 0, dp(20))
+            text = "PERSONALIZE YOUR HOME SCREEN"; textSize = 14f
+            setTextColor(Color.rgb(190, 190, 200)); setPadding(0, 0, 0, dp(20))
         })
-
         root.addView(makeButton("Choose wallpaper") { chooseWallpaper() })
         root.addView(makeButton("Wallpaper display: Fill / crop") { setWallpaperMode("fill") })
         root.addView(makeButton("Wallpaper display: Fit entire image") { setWallpaperMode("fit") })
         root.addView(makeButton("Wallpaper display: Stretch") { setWallpaperMode("stretch") })
         root.addView(makeButton("Wallpaper display: Center original size") { setWallpaperMode("center") })
         root.addView(makeButton("Use default CleanTV wallpaper") {
-            prefs.edit().remove("wallpaper_uri").apply()
-            setResult(Activity.RESULT_OK)
-            finish()
+            prefs.edit().remove("wallpaper_uri").remove("wallpaper_file_path").apply()
+            File(filesDir, "selected-wallpaper").delete()
+            setResult(Activity.RESULT_OK); finish()
         })
         root.addView(makeButton("Open Android TV Settings") {
             try { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) } catch (_: Exception) {}
         })
         root.addView(TextView(this).apply {
-            text = "Tip: choose a JPG or PNG image. It will be used as the CleanTV background."
-            textSize = 15f
-            setTextColor(Color.LTGRAY)
-            setPadding(0, dp(20), 0, 0)
+            text = "Tip: choose a JPG or PNG image. It will be copied into CleanTV so it remains available."
+            textSize = 15f; setTextColor(Color.LTGRAY); setPadding(0, dp(20), 0, 0)
         })
-
         val scroll = ScrollView(this).apply {
-            isFillViewport = true
-            isFocusable = false
-            isFocusableInTouchMode = false
+            isFillViewport = true; isFocusable = false; isFocusableInTouchMode = false
             addView(root)
         }
         setContentView(scroll)
@@ -74,64 +62,63 @@ class CleanTVSettingsActivity : Activity() {
 
     private fun makeButton(label: String, action: () -> Unit): Button =
         Button(this).apply {
-            text = label
-            textSize = 18f
-            isFocusable = true
-            isFocusableInTouchMode = true
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.rgb(65, 25, 32))
-            layoutParams = LinearLayout.LayoutParams(dp(440), dp(58)).apply {
-                bottomMargin = dp(12)
-            }
+            text = label; textSize = 18f
+            isFocusable = true; isFocusableInTouchMode = true
+            setTextColor(Color.WHITE); setBackgroundColor(Color.rgb(65, 25, 32))
+            layoutParams = LinearLayout.LayoutParams(dp(440), dp(58)).apply { bottomMargin = dp(12) }
             if (label == "Choose wallpaper") tag = "first-setting"
-            setOnFocusChangeListener { view, hasFocus ->
-                view.setBackgroundColor(
-                    if (hasFocus) Color.rgb(190, 42, 55) else Color.rgb(65, 25, 32)
-                )
-                view.elevation = if (hasFocus) dp(8).toFloat() else 0f
-                view.scaleX = if (hasFocus) 1.035f else 1f
-                view.scaleY = if (hasFocus) 1.035f else 1f
+            setOnFocusChangeListener { view, focused ->
+                view.setBackgroundColor(if (focused) Color.rgb(190, 42, 55) else Color.rgb(65, 25, 32))
+                view.elevation = if (focused) dp(8).toFloat() else 0f
+                view.scaleX = if (focused) 1.035f else 1f
+                view.scaleY = if (focused) 1.035f else 1f
             }
-            // Let Button's native click handling process DPAD_CENTER once.
-            // A manual ACTION_DOWN handler here caused some TV remotes to
-            // launch the document picker twice and lose the picker window.
             setOnClickListener { action() }
         }
 
     private fun setWallpaperMode(mode: String) {
         prefs.edit().putString("wallpaper_scale_mode", mode).apply()
-        setResult(Activity.RESULT_OK)
-        finish()
+        setResult(Activity.RESULT_OK); finish()
     }
 
     private fun chooseWallpaper() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
+        // GET_CONTENT is supported by more Android TV file providers than
+        // OPEN_DOCUMENT. Copy the returned image immediately instead of
+        // relying on persistable URI grants that some TV providers omit.
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
             type = "image/*"
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivityForResult(intent, REQUEST_WALLPAPER)
+        try {
+            startActivityForResult(Intent.createChooser(intent, "Choose wallpaper"), REQUEST_WALLPAPER)
+        } catch (_: Exception) {
+            try { startActivityForResult(intent, REQUEST_WALLPAPER) } catch (_: Exception) {}
+        }
     }
 
-    @Deprecated("Uses the compatible document-picker result callback for Android TV")
+    @Deprecated("Uses the compatible activity result callback for Android TV")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQUEST_WALLPAPER || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         try {
-            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            prefs.edit().putString("wallpaper_uri", uri.toString()).apply()
+            val destination = File(filesDir, "selected-wallpaper")
+            contentResolver.openInputStream(uri).use { input ->
+                if (input == null) return
+                FileOutputStream(destination).use { output -> input.copyTo(output) }
+            }
+            prefs.edit()
+                .putString("wallpaper_file_path", destination.absolutePath)
+                .remove("wallpaper_uri")
+                .apply()
             setResult(Activity.RESULT_OK)
             finish()
         } catch (_: Exception) {
-            // Leave the current wallpaper untouched if the provider denies access.
+            // Keep the current wallpaper if the provider cannot supply the image.
         }
     }
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    companion object {
-        private const val REQUEST_WALLPAPER = 4102
-    }
+    companion object { private const val REQUEST_WALLPAPER = 4102 }
 }
