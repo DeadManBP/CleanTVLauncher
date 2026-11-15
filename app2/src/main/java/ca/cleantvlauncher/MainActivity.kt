@@ -89,11 +89,24 @@ class MainActivity : Activity() {
     private val clockHandler = Handler(Looper.getMainLooper())
     private val clockTick = object : Runnable {
         override fun run() {
-            val now = Date()
-            clock.text = SimpleDateFormat("h:mm a", Locale.getDefault()).format(now)
-            dateView.text = SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(now)
+            applyClockAndDateOptions()
             clockHandler.postDelayed(this, 30_000)
         }
+    }
+
+    private fun applyClockAndDateOptions() {
+        val prefs = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+        val now = Date()
+        clock.visibility = if (prefs.getBoolean("show_clock", true)) View.VISIBLE else View.GONE
+        dateView.visibility = if (prefs.getBoolean("show_date", true)) View.VISIBLE else View.GONE
+        val timePattern = if (prefs.getString("clock_format", "12h") == "24h") "HH:mm" else "h:mm a"
+        val datePattern = when (prefs.getString("date_format", "full")) {
+            "short" -> "MMM d, yyyy"
+            "weekday" -> "EEE, MMM d"
+            else -> "EEEE, MMM d"
+        }
+        clock.text = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
+        dateView.text = SimpleDateFormat(datePattern, Locale.getDefault()).format(now)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
