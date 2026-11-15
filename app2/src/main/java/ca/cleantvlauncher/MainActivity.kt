@@ -354,10 +354,27 @@ class MainActivity : Activity() {
      * and pressing Home picks it up.
      */
     private fun loadWallpaper() {
-        // Preferred path: wallpaper selected in CleanTV Settings via the
-        // Android document picker. Persisted URI permission survives reboot.
-        val savedUri = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
-            .getString("wallpaper_uri", null)
+        // Preferred path: image copied into app-private storage by Settings.
+        // This avoids relying on Android TV file-provider URI permissions.
+        val prefs = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+        val savedFile = prefs.getString("wallpaper_file_path", null)
+        if (!savedFile.isNullOrBlank()) {
+            try {
+                val file = File(savedFile)
+                val bmp = if (file.exists()) decodeWallpaperFile(file) else null
+                if (bmp != null) {
+                    applyWallpaperBitmap(bmp)
+                    wallpaperView.visibility = View.VISIBLE
+                    wallpaperDim.visibility = View.VISIBLE
+                    return
+                }
+            } catch (_: Exception) {
+                // Fall through to older saved URI and legacy wallpaper locations.
+            }
+        }
+
+        // Backward compatibility: URI wallpapers saved by earlier v2 builds.
+        val savedUri = prefs.getString("wallpaper_uri", null)
         if (!savedUri.isNullOrBlank()) {
             try {
                 val uri = android.net.Uri.parse(savedUri)
