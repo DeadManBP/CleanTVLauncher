@@ -5,10 +5,10 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
-import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 /** CleanTV's own settings. Wallpaper selection uses Android's document picker
@@ -23,9 +23,10 @@ class CleanTVSettingsActivity : Activity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = Gravity.TOP
             setPadding(dp(56), dp(28), dp(56), dp(28))
             setBackgroundColor(Color.rgb(15, 16, 20))
+            isFocusable = false
         }
 
         root.addView(TextView(this).apply {
@@ -61,8 +62,14 @@ class CleanTVSettingsActivity : Activity() {
             setPadding(0, dp(20), 0, 0)
         })
 
-        setContentView(root)
-        root.findViewWithTag<View>("first-setting")?.requestFocus()
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            isFocusable = false
+            isFocusableInTouchMode = false
+            addView(root)
+        }
+        setContentView(scroll)
+        root.post { root.findViewWithTag<View>("first-setting")?.requestFocus() }
     }
 
     private fun makeButton(label: String, action: () -> Unit): Button =
@@ -77,14 +84,18 @@ class CleanTVSettingsActivity : Activity() {
                 bottomMargin = dp(12)
             }
             if (label == "Choose wallpaper") tag = "first-setting"
-            setOnClickListener { action() }
-            setOnKeyListener { _, keyCode, event ->
-                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) &&
-                    event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                    action()
-                    true
-                } else false
+            setOnFocusChangeListener { view, hasFocus ->
+                view.setBackgroundColor(
+                    if (hasFocus) Color.rgb(190, 42, 55) else Color.rgb(65, 25, 32)
+                )
+                view.elevation = if (hasFocus) dp(8).toFloat() else 0f
+                view.scaleX = if (hasFocus) 1.035f else 1f
+                view.scaleY = if (hasFocus) 1.035f else 1f
             }
+            // Let Button's native click handling process DPAD_CENTER once.
+            // A manual ACTION_DOWN handler here caused some TV remotes to
+            // launch the document picker twice and lose the picker window.
+            setOnClickListener { action() }
         }
 
     private fun setWallpaperMode(mode: String) {
