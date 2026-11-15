@@ -42,6 +42,10 @@ class CleanTVSettingsActivity : Activity() {
         })
 
         root.addView(makeButton("Choose wallpaper") { chooseWallpaper() })
+        root.addView(makeButton("Wallpaper display: Fill / crop") { setWallpaperMode("fill") })
+        root.addView(makeButton("Wallpaper display: Fit entire image") { setWallpaperMode("fit") })
+        root.addView(makeButton("Wallpaper display: Stretch") { setWallpaperMode("stretch") })
+        root.addView(makeButton("Wallpaper display: Center original size") { setWallpaperMode("center") })
         root.addView(makeButton("Use default CleanTV wallpaper") {
             prefs.edit().remove("wallpaper_uri").apply()
             setResult(Activity.RESULT_OK)
@@ -82,6 +86,12 @@ class CleanTVSettingsActivity : Activity() {
                 } else false
             }
         }
+
+    private fun setWallpaperMode(mode: String) {
+        prefs.edit().putString("wallpaper_scale_mode", mode).apply()
+        setResult(Activity.RESULT_OK)
+        finish()
+    }
 
     private fun chooseWallpaper() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
