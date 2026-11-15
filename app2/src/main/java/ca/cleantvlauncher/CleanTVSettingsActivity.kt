@@ -82,39 +82,15 @@ class CleanTVSettingsActivity : Activity() {
     }
 
     private fun chooseWallpaper() {
-        // GET_CONTENT is supported by more Android TV file providers than
-        // OPEN_DOCUMENT. Copy the returned image immediately instead of
-        // relying on persistable URI grants that some TV providers omit.
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-            type = "image/*"
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        try {
-            startActivityForResult(Intent.createChooser(intent, "Choose wallpaper"), REQUEST_WALLPAPER)
-        } catch (_: Exception) {
-            try { startActivityForResult(intent, REQUEST_WALLPAPER) } catch (_: Exception) {}
-        }
+        startActivityForResult(Intent(this, WallpaperBrowserActivity::class.java), REQUEST_WALLPAPER)
     }
 
-    @Deprecated("Uses the compatible activity result callback for Android TV")
+    @Deprecated("Receives result from CleanTV's built-in wallpaper browser")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_WALLPAPER || resultCode != RESULT_OK) return
-        val uri = data?.data ?: return
-        try {
-            val destination = File(filesDir, "selected-wallpaper")
-            contentResolver.openInputStream(uri).use { input ->
-                if (input == null) return
-                FileOutputStream(destination).use { output -> input.copyTo(output) }
-            }
-            prefs.edit()
-                .putString("wallpaper_file_path", destination.absolutePath)
-                .remove("wallpaper_uri")
-                .apply()
+        if (requestCode == REQUEST_WALLPAPER && resultCode == RESULT_OK) {
             setResult(Activity.RESULT_OK)
             finish()
-        } catch (_: Exception) {
-            // Keep the current wallpaper if the provider cannot supply the image.
         }
     }
 
