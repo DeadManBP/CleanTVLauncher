@@ -224,6 +224,25 @@ class MainActivity : Activity() {
         for (app in apps) {
             dock.addView(makeBannerDockTile(app, bannerWidthDp))
         }
+        // Dedicated Xbox input tile: use Android TV's passthrough URI
+        // directly, bypassing the TV's unreliable INPUT-key/menu path.
+        val xboxIcon: Drawable = getDrawable(R.drawable.ic_xbox_tile)!!
+        dock.addView(
+            makeDockTile(
+                AppEntry(
+                    "Xbox",
+                    "ca.cleantvlauncher.xbox-input",
+                    xboxIcon,
+                    null,
+                    Intent(Intent.ACTION_VIEW).apply {
+                        data = android.net.Uri.parse(
+                            "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW1"
+                        )
+                    }
+                ),
+                smallTileDp
+            )
+        )
         // App drawer tile (grid icon), then Settings last.
         val drawerIcon: Drawable = getDrawable(R.drawable.ic_apps_grid)!!
         dock.addView(
