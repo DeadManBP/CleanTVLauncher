@@ -17,7 +17,7 @@ import android.widget.TextView
 /** Right-side translucent quick panel. The launcher remains visible behind it. */
 class ControlCenterActivity : Activity() {
 
-    private val accent = Color.rgb(220,  fifty(), 68)
+    private val accent = Color.rgb(220, 50, 68)
     private val panel = Color.rgb(18, 22, 30)
     private val muted = Color.rgb(157, 167, 181)
 
@@ -98,7 +98,7 @@ class ControlCenterActivity : Activity() {
         val width = minOf(dp(430), (resources.displayMetrics.widthPixels * 0.43f).toInt())
         scrim.addView(side, FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END))
         setContentView(scrim)
-        side.post { side.getChildAt(3)?.requestFocus() }
+        side.post { side.getChildAt(4)?.requestFocus() }
     }
 
     private fun addSection(root: LinearLayout, title: String) {
