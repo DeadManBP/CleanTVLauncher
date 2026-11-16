@@ -6,6 +6,7 @@
 
     <!-- For the optional custom wallpaper file in Downloads / Pictures. -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <!-- Android 11+ package visibility: without this, queryIntentActivities
          only sees a handful of system apps and misses every streaming app.
@@ -40,6 +41,10 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SystemInformationActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
         <activity
             android:name=".ControlCenterActivity"
             android:exported="false"
