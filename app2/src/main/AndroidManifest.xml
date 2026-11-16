@@ -41,6 +41,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ControlCenterActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+        <activity
             android:name=".CleanTVSettingsActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
