@@ -83,7 +83,7 @@
     <HorizontalScrollView
         android:id="@+id/dock_scroll"
         android:layout_width="wrap_content"
-        android:layout_height="84dp"
+        android:layout_height="100dp"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="76dp"
@@ -91,10 +91,10 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:scrollbars="none">
 
         <LinearLayout
