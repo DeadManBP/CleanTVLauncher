@@ -83,7 +83,7 @@ class ControlCenterActivity : Activity() {
             openSettings(Settings.ACTION_SETTINGS)
         })
         side.addView(actionButton("DEVICE INFORMATION", "About this TV and device details") {
-            openSettings(Settings.ACTION_DEVICE_INFO_SETTINGS)
+            startActivity(Intent(this, SystemInformationActivity::class.java))
         })
         side.addView(TextView(this).apply {
             text = "BACK  /  CLOSE"
