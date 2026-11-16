@@ -243,6 +243,20 @@ class MainActivity : Activity() {
                 smallTileDp
             )
         )
+        // Quick Control Panel: translucent right-side overlay.
+        val controlIcon: Drawable = getDrawable(R.drawable.ic_control_center)!!
+        dock.addView(
+            makeDockTile(
+                AppEntry(
+                    "Control Center",
+                    "ca.cleantvlauncher.control-center",
+                    controlIcon,
+                    null,
+                    Intent(this, ControlCenterActivity::class.java)
+                ),
+                smallTileDp
+            )
+        )
         // App drawer tile (grid icon), then Settings last.
         val drawerIcon: Drawable = getDrawable(R.drawable.ic_apps_grid)!!
         dock.addView(
