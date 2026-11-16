@@ -70,7 +70,7 @@ class CleanTVSettingsActivity : Activity() {
             prefs.edit().remove("wallpaper_uri").remove("wallpaper_file_path").apply()
             File(filesDir, "selected-wallpaper").delete()
             setResult(Activity.RESULT_OK)
-            finish()
+            recreate()
         })
 
         addSection(root, "02  /  CLOCK & DATE", "Choose what appears in the home screen header")
@@ -81,16 +81,16 @@ class CleanTVSettingsActivity : Activity() {
 
         root.addView(makeButton("Clock  /  " + if (clockOn) "ON" else "OFF", "Toggle the home screen clock") {
             prefs.edit().putBoolean("show_clock", !prefs.getBoolean("show_clock", true)).apply()
-            returnToHome()
+            refreshSettings()
         })
         root.addView(makeButton("Date  /  " + if (dateOn) "ON" else "OFF", "Toggle the date independently") {
             prefs.edit().putBoolean("show_date", !prefs.getBoolean("show_date", true)).apply()
-            returnToHome()
+            refreshSettings()
         })
         root.addView(makeButton("Time format  /  " + if (timeFormat == "12h") "12-HOUR" else "24-HOUR", "Switch between 12-hour and 24-hour time") {
             val next = if ((prefs.getString("clock_format", "12h") ?: "12h") == "12h") "24h" else "12h"
             prefs.edit().putString("clock_format", next).apply()
-            returnToHome()
+            refreshSettings()
         })
         root.addView(makeButton("Date format  /  " + when (dateFormat) {
             "short" -> "MONTH DAY, YEAR"
@@ -103,7 +103,7 @@ class CleanTVSettingsActivity : Activity() {
                 else -> "full"
             }
             prefs.edit().putString("date_format", next).apply()
-            returnToHome()
+            refreshSettings()
         })
 
         addSection(root, "03  /  SYSTEM", "Device-level settings")
@@ -199,15 +199,15 @@ class CleanTVSettingsActivity : Activity() {
             setOnClickListener { action() }
         }
 
-    private fun returnToHome() {
+    /** Refresh the visible selections without kicking the user back home. */
+    private fun refreshSettings() {
         setResult(Activity.RESULT_OK)
-        finish()
+        recreate()
     }
 
     private fun setWallpaperMode(mode: String) {
         prefs.edit().putString("wallpaper_scale_mode", mode).apply()
-        setResult(Activity.RESULT_OK)
-        finish()
+        refreshSettings()
     }
 
     private fun chooseWallpaper() {
@@ -219,7 +219,7 @@ class CleanTVSettingsActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_WALLPAPER && resultCode == RESULT_OK) {
             setResult(Activity.RESULT_OK)
-            finish()
+            recreate()
         }
     }
 
