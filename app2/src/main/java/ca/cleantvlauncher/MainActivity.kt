@@ -207,22 +207,11 @@ class MainActivity : Activity() {
         val apps = loadFavouritePackages(this).mapNotNull { pkg ->
             allApps.find { it.packageName == pkg }
         }
-        // v2.7: the two apps get wide banner tiles; the grid and Settings
-        // tiles stay small square icons. Banner width is the screen width
-        // minus 32dp of side breathing room, minus the pill's 24dp of
-        // padding, minus 6dp of margin per tile, minus the two small tiles,
-        // split between the banners and capped at 176dp.
-        val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
-        val smallTileDp = 64
-        val totalTiles = apps.size + 2
-        val bannerWidthDp = minOf(
-            176,
-            ((screenWidthDp - 32 - 24 - totalTiles * 6 - 2 * smallTileDp) /
-                apps.size.coerceAtLeast(1)).toInt()
-        ).coerceAtLeast(120)
+        // Every dock item uses the same square tile with a readable label.
+        val smallTileDp = 78
         dock.removeAllViews()
         for (app in apps) {
-            dock.addView(makeBannerDockTile(app, bannerWidthDp))
+            dock.addView(makeDockTile(app, smallTileDp))
         }
         // Dedicated Xbox input tile: use Android TV's passthrough URI
         // directly, bypassing the TV's unreliable INPUT-key/menu path.
@@ -296,13 +285,20 @@ class MainActivity : Activity() {
         val tile = LayoutInflater.from(this).inflate(R.layout.item_app, dock, false)
         val iconView = tile.findViewById<ImageView>(R.id.app_icon)
         iconView.setImageDrawable(app.icon)
-        val iconSize = dp((tileWidthDp - 8).coerceAtLeast(36))
+        val iconSize = dp(38)
         iconView.layoutParams = LinearLayout.LayoutParams(iconSize, iconSize)
+        val labelView = tile.findViewById<TextView>(R.id.app_label)
+        labelView.text = app.label
+        labelView.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+        labelView.textSize = 10f
+        labelView.maxLines = 1
+        labelView.isSingleLine = true
+        labelView.ellipsize = android.text.TextUtils.TruncateAt.END
         tile.contentDescription = app.label
         tile.tag = app
         tile.isFocusable = true
         tile.isFocusableInTouchMode = true
-        val params = LinearLayout.LayoutParams(dp(tileWidthDp), dp(64))
+        val params = LinearLayout.LayoutParams(dp(tileWidthDp), dp(78))
         params.marginStart = dp(3)
         params.marginEnd = dp(3)
         tile.layoutParams = params
@@ -324,8 +320,8 @@ class MainActivity : Activity() {
         // Tile lifts slightly on focus, over the red focus ring, and the
         // hero follows focus.
         tile.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-            val s = if (hasFocus) 1.25f else 1.0f
-            v.animate().scaleX(s).scaleY(s).setDuration(150).start()
+            val s = if (hasFocus) 1.12f else 1.0f
+            v.animate().scaleX(s).scaleY(s).setDuration(190).start()
             // Apple TV style lift: the focused tile rises above its
             // neighbours (elevation changes draw order, not layout).
             v.elevation = if (hasFocus) dp(6).toFloat() else 0f
