@@ -83,7 +83,7 @@ class SystemInformationActivity : Activity() {
         section(root, "ANDROID")
         info(root, "Android version", Build.VERSION.RELEASE ?: "Unknown")
         info(root, "API level", Build.VERSION.SDK_INT.toString())
-        info(root, "Security patch", Build.VERSION.SECURITY_PATCH ?: "Unavailable")
+        info(root, "Security patch", if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Build.VERSION.SECURITY_PATCH ?: "Unavailable" else "Not provided by this Android version")
         info(root, "Build number", Build.DISPLAY ?: "Unavailable")
 
         section(root, "DISPLAY")
