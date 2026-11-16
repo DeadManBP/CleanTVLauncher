@@ -155,8 +155,9 @@ class ControlCenterActivity : Activity() {
 
     private fun openSettings(action: String) {
         try {
+            // Keep the translucent Control Center underneath system settings.
+            // Android Back then returns here instead of dropping to the launcher.
             startActivity(Intent(action))
-            finish()
         } catch (_: Exception) {
             if (action != Settings.ACTION_SETTINGS) openSettings(Settings.ACTION_SETTINGS)
         }
