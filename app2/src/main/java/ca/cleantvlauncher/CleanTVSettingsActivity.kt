@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import java.io.File
+import java.util.Locale
 
 /** CleanTV settings with the dark gunmetal and crimson visual language. */
 class CleanTVSettingsActivity : Activity() {
