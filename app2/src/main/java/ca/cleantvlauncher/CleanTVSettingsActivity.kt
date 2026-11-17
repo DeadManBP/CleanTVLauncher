@@ -31,8 +31,12 @@ class CleanTVSettingsActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP
-            setPadding(dp(48), dp(28), dp(48), dp(36))
-            setBackgroundColor(backgroundColor)
+            setPadding(dp(42), dp(28), dp(42), dp(36))
+            background = GradientDrawable().apply {
+                cornerRadii = floatArrayOf(dp(22).toFloat(), dp(22).toFloat(), 0f, 0f, 0f, 0f, dp(22).toFloat(), dp(22).toFloat())
+                setColor(panelColor)
+                setStroke(dp(1), Color.rgb(68, 45, 53))
+            }
             isFocusable = false
         }
 
@@ -129,9 +133,17 @@ class CleanTVSettingsActivity : Activity() {
             isFocusable = false
             isFocusableInTouchMode = false
             addView(root)
-            setBackgroundColor(backgroundColor)
+            setBackgroundColor(Color.TRANSPARENT)
         }
-        setContentView(scroll)
+        val scrim = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            isFocusable = true
+        }
+        val panelWidth = minOf(dp(820), (resources.displayMetrics.widthPixels * 0.58f).toInt())
+        scrim.addView(scroll, android.widget.FrameLayout.LayoutParams(
+            panelWidth, android.widget.FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END
+        ))
+        setContentView(scrim)
         root.post { root.findViewWithTag<View>("first-setting")?.requestFocus() }
     }
 
