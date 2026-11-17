@@ -104,7 +104,7 @@ class WeatherDetailsActivity : Activity() {
                 .map { cell ->
                     @Suppress("DEPRECATION")
                     android.text.Html.fromHtml(cell.groupValues[1]).toString()
-                        .replace('\\u00A0', ' ').replace(Regex("\\s+"), " ").trim()
+                        .replace('\u00A0', ' ').replace(Regex("\\s+"), " ").trim()
                 }.toList()
             if (cells.size < 6 || !Regex("\\d{2}:\\d{2}").matches(cells[0])) null
             else listOf(cells[0], cells[1] + "°", cells[2], cells[3] + "%", cells[5])
