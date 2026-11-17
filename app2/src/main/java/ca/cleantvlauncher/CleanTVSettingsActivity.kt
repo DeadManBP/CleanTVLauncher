@@ -76,6 +76,31 @@ class CleanTVSettingsActivity : Activity() {
         root.addView(makeButton("Fit entire image", "Show the complete image, with possible borders" + selected(wallpaperMode == "fit")) { setWallpaperMode("fit") })
         root.addView(makeButton("Stretch", "Stretch the image to the screen edges" + selected(wallpaperMode == "stretch")) { setWallpaperMode("stretch") })
         root.addView(makeButton("Center original size", "Keep the image at its original pixel size" + selected(wallpaperMode == "center")) { setWallpaperMode("center") })
+
+        val brightnessLevels = listOf(0.8f, 0.9f, 1.0f, 1.1f, 1.2f)
+        val brightness = prefs.getFloat("wallpaper_brightness", 1.0f)
+        root.addView(makeButton(
+            "Wallpaper brightness  /  " + (brightness * 100).toInt() + "%",
+            "Cycle darker, normal and brighter image levels"
+        ) {
+            val current = prefs.getFloat("wallpaper_brightness", 1.0f)
+            val index = brightnessLevels.indexOf(current).coerceAtLeast(0)
+            prefs.edit().putFloat("wallpaper_brightness", brightnessLevels[(index + 1) % brightnessLevels.size]).apply()
+            refreshSettings()
+        })
+
+        val dimLevels = listOf(0.0f, 0.25f, 0.4f, 0.5f, 0.65f, 0.75f)
+        val dimAmount = prefs.getFloat("wallpaper_dim_amount", 0.50f)
+        root.addView(makeButton(
+            "Wallpaper dark overlay  /  " + (dimAmount * 100).toInt() + "%",
+            "Adjust darkness behind icons and text for readability"
+        ) {
+            val current = prefs.getFloat("wallpaper_dim_amount", 0.50f)
+            val index = dimLevels.indexOf(current).coerceAtLeast(0)
+            prefs.edit().putFloat("wallpaper_dim_amount", dimLevels[(index + 1) % dimLevels.size]).apply()
+            refreshSettings()
+        })
+
         root.addView(makeButton("Restore default wallpaper", "Return to the built-in CleanTV background") {
             prefs.edit().remove("wallpaper_uri").remove("wallpaper_file_path").apply()
             File(filesDir, "selected-wallpaper").delete()
