@@ -249,13 +249,18 @@ class MainActivity : Activity() {
                     .replace('\u00A0', ' ')
                     .replace(Regex("\\s+"), " ")
 
-                val currentSection = pageText.substringAfter(
-                    "Current Conditions Observed at:", ""
-                ).substringBefore("More details")
+                // ECCC's location page exposes the observed temperature in its
+                // current-conditions block. Search the full normalized page because
+                // Html.fromHtml can vary the surrounding heading/section whitespace.
                 val temperature = Regex(
-                    "Temperature:\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*°C"
-                ).find(currentSection)?.groupValues?.get(1)?.toDouble()?.toInt()
-                    ?: throw IllegalStateException("Current temperature not found")
+                    "Temperature\\s*:\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*°\\s*C",
+                    RegexOption.IGNORE_CASE
+                ).find(pageText)?.groupValues?.get(1)?.toDouble()?.toInt()
+                    ?: Regex(
+                        "Current Conditions Observed at:.*?([+-]?\\d+(?:\\.\\d+)?)\\s*°\\s*C",
+                        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+                    ).find(pageText)?.groupValues?.get(1)?.toDouble()?.toInt()
+                    ?: throw IllegalStateException("ECCC current temperature not found in page text")
 
                 val forecastSection = pageText.substringAfter("Detailed Forecast", "")
                 val high = Regex("\\bHigh\\s+(\\d+)").find(forecastSection)
@@ -292,7 +297,8 @@ class MainActivity : Activity() {
                         "Brockville forecast"
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("CleanTVWeather", "ECCC weather refresh failed", e)
                 runOnUiThread {
                     weatherIcon.text = "☁"
                     weatherTemp.text = "--°"
