@@ -244,9 +244,8 @@ class MainActivity : Activity() {
                     setRequestProperty("User-Agent", "CleanTVLauncher/2.0 (Android TV)")
                 }
                 val html = connection.inputStream.bufferedReader().use { it.readText() }
-                val pageText = android.text.Html.fromHtml(
-                    html, android.text.Html.FROM_HTML_MODE_LEGACY
-                ).toString()
+                @Suppress("DEPRECATION")
+                val pageText = android.text.Html.fromHtml(html).toString()
                     .replace('\u00A0', ' ')
                     .replace(Regex("\\s+"), " ")
 
