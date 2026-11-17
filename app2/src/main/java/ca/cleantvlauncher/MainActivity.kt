@@ -142,6 +142,7 @@ class MainActivity : Activity() {
         lastLaunchPkg = app.packageName
         try {
             startActivity(app.launch)
+            recordAppLaunch(this, app.packageName)
         } catch (e: Exception) {
             // Never let a bad launch intent kill the launcher.
         }
@@ -614,5 +615,26 @@ fun saveFavouritePackages(context: Context, packages: List<String>) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit()
         .putString(PREF_FAVOURITES, packages.joinToString(","))
+        .apply()
+}
+
+/** Persist a small, most-recent-first launch history for the App Drawer. */
+private const val PREF_RECENT_APPS = "recent_apps"
+
+fun loadRecentPackages(context: Context): List<String> =
+    context.getSharedPreferences("clean_tv_prefs", Context.MODE_PRIVATE)
+        .getString(PREF_RECENT_APPS, "")
+        .orEmpty()
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+
+fun recordAppLaunch(context: Context, packageName: String) {
+    if (packageName.startsWith("ca.cleantvlauncher")) return
+    val updated = (listOf(packageName) + loadRecentPackages(context)
+        .filterNot { it == packageName }).take(12)
+    context.getSharedPreferences("clean_tv_prefs", Context.MODE_PRIVATE)
+        .edit()
+        .putString(PREF_RECENT_APPS, updated.joinToString(","))
         .apply()
 }
