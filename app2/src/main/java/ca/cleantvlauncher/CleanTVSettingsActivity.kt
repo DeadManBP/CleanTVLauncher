@@ -22,7 +22,12 @@ class CleanTVSettingsActivity : Activity() {
     private val backgroundColor = Color.rgb(11, 13, 18)
     private val panelColor = Color.rgb(23, 27, 36)
     private val panelFocusColor = Color.rgb(62, 22, 31)
-    private val accentColor = Color.rgb(205, 48, 62)
+    private val accentColor: Int
+        get() = when (prefs.getString("theme_accent", "crimson")) {
+            "blue" -> Color.rgb(55, 145, 220)
+            "green" -> Color.rgb(55, 175, 125)
+            else -> Color.rgb(205, 48, 62)
+        }
     private val mutedColor = Color.rgb(155, 164, 178)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,7 +115,57 @@ class CleanTVSettingsActivity : Activity() {
             refreshSettings()
         })
 
-        addSection(root, "03  /  SYSTEM", "Device-level settings")
+        addSection(root, "03  /  APPEARANCE", "Tune CleanTV's colours and overlay behaviour")
+        val accentName = when (prefs.getString("theme_accent", "crimson")) {
+            "blue" -> "ICE BLUE"
+            "green" -> "EMERALD"
+            else -> "CRIMSON"
+        }
+        root.addView(makeButton("Accent colour  /  $accentName", "Cycle crimson, ice blue and emerald") {
+            val next = when (prefs.getString("theme_accent", "crimson")) {
+                "crimson" -> "blue"
+                "blue" -> "green"
+                else -> "crimson"
+            }
+            prefs.edit().putString("theme_accent", next).apply()
+            refreshSettings()
+        })
+
+        val dimAmount = prefs.getFloat("drawer_dim_amount", 0.62f)
+        val dimName = when {
+            dimAmount < 0.5f -> "LIGHT"
+            dimAmount > 0.7f -> "HEAVY"
+            else -> "BALANCED"
+        }
+        root.addView(makeButton("Drawer background dim  /  $dimName", "Cycle light, balanced and heavy background dimming") {
+            val current = prefs.getFloat("drawer_dim_amount", 0.62f)
+            val next = when {
+                current < 0.5f -> 0.62f
+                current < 0.7f -> 0.78f
+                else -> 0.42f
+            }
+            prefs.edit().putFloat("drawer_dim_amount", next).apply()
+            refreshSettings()
+        })
+
+        val panelAlpha = prefs.getInt("drawer_panel_alpha", 94)
+        val panelName = when {
+            panelAlpha <= 88 -> "MORE TRANSPARENT"
+            panelAlpha >= 98 -> "SOLID"
+            else -> "BALANCED"
+        }
+        root.addView(makeButton("Drawer panel  /  $panelName", "Cycle panel transparency from glassy to solid") {
+            val current = prefs.getInt("drawer_panel_alpha", 94)
+            val next = when {
+                current <= 88 -> 94
+                current < 98 -> 100
+                else -> 86
+            }
+            prefs.edit().putInt("drawer_panel_alpha", next).apply()
+            refreshSettings()
+        })
+
+        addSection(root, "04  /  SYSTEM", "Device-level settings")
         root.addView(makeButton("Android TV Settings", "Open the television's system settings") {
             try {
                 startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
