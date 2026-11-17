@@ -182,6 +182,18 @@ class MainActivity : Activity() {
         weatherTemp = findViewById(R.id.weather_temp)
         weatherCondition = findViewById(R.id.weather_condition)
         weatherHighLow = findViewById(R.id.weather_highlow)
+        findViewById<View>(R.id.weather_widget).apply {
+            isFocusable = true
+            isClickable = true
+            setOnClickListener { startActivity(Intent(this@MainActivity, WeatherDetailsActivity::class.java)) }
+            setOnKeyListener { _, keyCode, event ->
+                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) &&
+                    event.action == KeyEvent.ACTION_UP) {
+                    performClick()
+                    true
+                } else false
+            }
+        }
         loadDock()
         maybeRequestStoragePermission()
         loadWallpaper()
