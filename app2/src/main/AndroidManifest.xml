@@ -64,7 +64,8 @@
         <activity
             android:name=".AppDrawerActivity"
             android:exported="false"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
         <!-- Favourites editor (v2.8): star apps into the dock and reorder
              them. Missing this entry was why the drawer's Edit favourites
              tile did nothing — starting an undeclared activity throws, and
