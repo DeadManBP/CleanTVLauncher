@@ -46,15 +46,19 @@ class AppDrawerActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        window.setDimAmount(0.62f)
+        val prefs = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+        window.setDimAmount(prefs.getFloat("drawer_dim_amount", 0.62f).coerceIn(0.25f, 0.85f))
         window.setBackgroundDrawableResource(android.R.color.transparent)
         setContentView(R.layout.activity_drawer)
-        findViewById<View>(R.id.drawer_panel).layoutParams =
+        findViewById<View>(R.id.drawer_panel).apply {
+            background?.alpha = (prefs.getInt("drawer_panel_alpha", 94).coerceIn(80, 100) * 255 / 100)
+            layoutParams =
             android.widget.FrameLayout.LayoutParams(
                 (resources.displayMetrics.widthPixels * 0.88f).toInt(),
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                 Gravity.END
             )
+        }
         allApps = loadLaunchableApps(packageManager, packageName)
         container = findViewById(R.id.drawer_container)
         title = findViewById(R.id.drawer_title)
@@ -101,12 +105,19 @@ class AppDrawerActivity : Activity() {
             chipBackground(true)
     }
 
+    private fun accentColor(): Int =
+        when (getSharedPreferences("clean_tv_prefs", MODE_PRIVATE).getString("theme_accent", "crimson")) {
+            "blue" -> Color.rgb(55, 145, 220)
+            "green" -> Color.rgb(55, 175, 125)
+            else -> Color.rgb(205, 48, 62)
+        }
+
     private fun chipBackground(selected: Boolean): GradientDrawable =
         GradientDrawable().apply {
             cornerRadius = dp(18).toFloat()
-            setColor(if (selected) Color.rgb(115, 25, 39) else Color.rgb(25, 31, 41))
+            setColor(if (selected) Color.rgb(35, 42, 55) else Color.rgb(25, 31, 41))
             setStroke(dp(if (selected) 2 else 1),
-                if (selected) Color.rgb(230, 65, 82) else Color.rgb(91, 105, 122))
+                if (selected) accentColor() else Color.rgb(91, 105, 122))
         }
 
     private fun renderApps(focusFirst: Boolean) {
@@ -226,7 +237,7 @@ class AppDrawerActivity : Activity() {
         canvas.drawRoundRect(bounds, radius, radius, background)
 
         val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(190, 43, 59)
+            color = accentColor()
             style = Paint.Style.STROKE
             strokeWidth = dp(2).toFloat()
         }
