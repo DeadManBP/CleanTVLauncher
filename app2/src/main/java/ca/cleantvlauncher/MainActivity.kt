@@ -8,8 +8,10 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -281,9 +283,25 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun dockAccentColor(): Int =
+        when (getSharedPreferences("clean_tv_prefs", MODE_PRIVATE).getString("theme_accent", "crimson")) {
+            "blue" -> Color.rgb(55, 145, 220)
+            "green" -> Color.rgb(55, 175, 125)
+            else -> Color.rgb(205, 48, 62)
+        }
+
+    private fun dockTileBackground(focused: Boolean): GradientDrawable =
+        GradientDrawable().apply {
+            cornerRadius = dp(13).toFloat()
+            setColor(if (focused) Color.rgb(42, 34, 43) else Color.rgb(35, 42, 52))
+            setStroke(dp(if (focused) 2 else 1),
+                if (focused) dockAccentColor() else Color.rgb(75, 88, 105))
+        }
+
     /** One focusable dock tile for an app (or a special tile). */
     private fun makeDockTile(app: AppEntry, tileWidthDp: Int): View {
         val tile = LayoutInflater.from(this).inflate(R.layout.item_app, dock, false)
+        tile.background = dockTileBackground(false)
         val iconView = tile.findViewById<ImageView>(R.id.app_icon)
         iconView.setImageDrawable(app.icon)
         val iconSize = dp(38)
@@ -326,6 +344,7 @@ class MainActivity : Activity() {
             // Apple TV style lift: the focused tile rises above its
             // neighbours (elevation changes draw order, not layout).
             v.elevation = if (hasFocus) dp(6).toFloat() else 0f
+            v.background = dockTileBackground(hasFocus)
             if (hasFocus) updateHero(app)
         }
         return tile
