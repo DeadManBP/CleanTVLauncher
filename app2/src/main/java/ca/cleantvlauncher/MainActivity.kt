@@ -317,7 +317,12 @@ class MainActivity : Activity() {
                 ?: return@post
             params.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
             params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_TOP)
-            val dockPosition = when (getSharedPreferences("clean_tv_prefs", MODE_PRIVATE).getString("dock_position", "standard")) {\n                "high" -> 0.72f\n                "low" -> 0.88f\n                else -> 0.80f\n            }\n            params.topMargin = (availableHeight * dockPosition - dockScroll.height / 2f)
+            val dockPosition = when (getSharedPreferences("clean_tv_prefs", MODE_PRIVATE).getString("dock_position", "standard")) {
+                "high" -> 0.72f
+                "low" -> 0.88f
+                else -> 0.80f
+            }
+            params.topMargin = (availableHeight * dockPosition - dockScroll.height / 2f)
                 .toInt().coerceAtLeast(dp(8))
             params.bottomMargin = 0
             dockScroll.layoutParams = params
