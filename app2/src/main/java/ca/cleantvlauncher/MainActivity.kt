@@ -543,7 +543,8 @@ data class AppEntry(
     val packageName: String,
     val icon: Drawable,
     val banner: Drawable?,
-    val launch: Intent
+    val launch: Intent,
+    val hasCustomIcon: Boolean = true
 )
 
 /**
@@ -568,6 +569,19 @@ fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> 
             if (!ri.activityInfo.enabled) continue
             val label = ri.loadLabel(pm).toString()
             val icon = ri.activityInfo.loadIcon(pm)
+            // Treat icons supplied by the app package as custom artwork.
+            // Framework/shared generic icons get a CleanTV fallback in the drawer.
+            val iconResource = ri.activityInfo.getIconResource()
+            val hasCustomIcon = if (iconResource == 0) {
+                false
+            } else {
+                try {
+                    pm.getResourcesForApplication(ri.activityInfo.packageName)
+                        .getResourcePackageName(iconResource) == ri.activityInfo.packageName
+                } catch (_: Exception) {
+                    false
+                }
+            }
             // Banner art for the hero area and the drawer; not every app has one.
             val banner: Drawable? = try {
                 ri.activityInfo.loadBanner(pm)
@@ -584,7 +598,7 @@ fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> 
                     addCategory(Intent.CATEGORY_LAUNCHER)
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
-            out.add(AppEntry(label, ri.activityInfo.packageName, icon, banner, launch))
+            out.add(AppEntry(label, ri.activityInfo.packageName, icon, banner, launch, hasCustomIcon))
         }
     }
     out.sortBy { it.label.lowercase(Locale.getDefault()) }
