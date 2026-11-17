@@ -65,7 +65,7 @@ class WeatherDetailsActivity : Activity() {
         Thread {
             try {
                 val page = fetchText("https://weather.gc.ca/en/location/index.html?coords=44.597,-75.686")
-                val hourly = fetchText("https://weather.gc.ca/en/forecast/hourly/index.html?coords=44.597,-75.686")
+                val hourlyHtml = fetchRaw("https://weather.gc.ca/en/forecast/hourly/index.html?coords=44.597,-75.686")
                 val current = Regex("Temperature\\s*:\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*°\\s*C", RegexOption.IGNORE_CASE)
                     .find(page)?.groupValues?.get(1) ?: "--"
                 val humidity = Regex("Humidity\\s*:\\s*(\\d+)%", RegexOption.IGNORE_CASE).find(page)?.groupValues?.get(1) ?: "--"
@@ -75,10 +75,7 @@ class WeatherDetailsActivity : Activity() {
                 val forecast = page.substringAfter("Detailed Forecast", "")
                 val dayPattern = Regex("(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\s*\\([^)]*\\),?\\s*\\d{1,2}\\s+[A-Za-z]+\\s+([+-]?\\d+)°C\\s+([^\\n]+)", RegexOption.IGNORE_CASE)
                 val days = dayPattern.findAll(forecast).take(5).map { it.groupValues[1] to it.groupValues[2].trim() }.toList()
-                val hourlyPattern = Regex("(\\d{2}:\\d{2})\\s*\\|\\s*(-?\\d+)\\s*\\|\\s*([^|]+?)\\s*\\|\\s*(\\d{1,3})\\s*\\|[^|]*\\|\\s*([A-Z]{1,3}[^|]*)")
-                val hourlyRows = hourlyPattern.findAll(hourly).take(8).map { m ->
-                    listOf(m.groupValues[1], m.groupValues[2] + "°", m.groupValues[3].trim(), m.groupValues[4] + "%", m.groupValues[5].trim())
-                }.toList()
+                val hourlyRows = parseHourlyRows(hourlyHtml).take(8)
                 runOnUiThread {
                     status.text = "Updated " + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
                     addSection("CURRENT CONDITIONS")
@@ -98,6 +95,32 @@ class WeatherDetailsActivity : Activity() {
                 runOnUiThread { status.text = "Weather details unavailable. Check connection and try again." }
             }
         }.start()
+    }
+
+    private fun parseHourlyRows(html: String): List<List<String>> {
+        val rows = Regex("(?is)<tr\\b[^>]*>(.*?)</tr>").findAll(html)
+        return rows.mapNotNull { row ->
+            val cells = Regex("(?is)<t[dh]\\b[^>]*>(.*?)</t[dh]>").findAll(row.groupValues[1])
+                .map { cell ->
+                    @Suppress("DEPRECATION")
+                    android.text.Html.fromHtml(cell.groupValues[1]).toString()
+                        .replace('\\u00A0', ' ').replace(Regex("\\s+"), " ").trim()
+                }.toList()
+            if (cells.size < 6 || !Regex("\\d{2}:\\d{2}").matches(cells[0])) null
+            else listOf(cells[0], cells[1] + "°", cells[2], cells[3] + "%", cells[5])
+        }.toList()
+    }
+
+    private fun fetchRaw(address: String): String {
+        val connection = (URL(address).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 12000
+            readTimeout = 12000
+            setRequestProperty("User-Agent", "CleanTVLauncher/2.0 (Android TV)")
+            setRequestProperty("Accept", "text/html")
+        }
+        return try { connection.inputStream.bufferedReader().use { it.readText() } }
+        finally { connection.disconnect() }
     }
 
     private fun fetchText(address: String): String {
