@@ -44,6 +44,11 @@ class AppDrawerActivity : Activity() {
         window.setDimAmount(0.62f)
         window.setBackgroundDrawableResource(android.R.color.transparent)
         setContentView(R.layout.activity_drawer)
+        findViewById<View>(R.id.drawer_panel).layoutParams =
+            android.widget.RelativeLayout.LayoutParams(
+                (resources.displayMetrics.widthPixels * 0.88f).toInt(),
+                android.widget.RelativeLayout.LayoutParams.MATCH_PARENT
+            ).apply { addRule(android.widget.RelativeLayout.ALIGN_PARENT_END) }
         allApps = loadLaunchableApps(packageManager, packageName)
         container = findViewById(R.id.drawer_container)
         title = findViewById(R.id.drawer_title)
