@@ -82,7 +82,32 @@ class CleanTVSettingsActivity : Activity() {
             recreate()
         })
 
-        addSection(root, "02  /  CLOCK & DATE", "Choose what appears in the home screen header")
+        addSection(root, "02  /  HOME SCREEN", "Control the hero panel, dock position and header sizing")
+        val heroVisible = prefs.getBoolean("hero_visible", true)
+        val heroSize = prefs.getString("hero_size", "standard") ?: "standard"
+        val dockPosition = prefs.getString("dock_position", "standard") ?: "standard"
+        val clockSize = prefs.getString("clock_size", "standard") ?: "standard"
+        root.addView(makeButton("Hero panel  /  " + if (heroVisible) "VISIBLE" else "HIDDEN", "Show or hide the selected-app feature panel") {
+            prefs.edit().putBoolean("hero_visible", !prefs.getBoolean("hero_visible", true)).apply()
+            refreshSettings()
+        })
+        root.addView(makeButton("Hero size  /  ${heroSize.uppercase(Locale.getDefault())}", "Cycle compact, standard and large panel sizes") {
+            val next = when (prefs.getString("hero_size", "standard")) { "compact" -> "standard"; "standard" -> "large"; else -> "compact" }
+            prefs.edit().putString("hero_size", next).apply()
+            refreshSettings()
+        })
+        root.addView(makeButton("Dock position  /  ${dockPosition.uppercase(Locale.getDefault())}", "Move the dock higher or lower on the home screen") {
+            val next = when (prefs.getString("dock_position", "standard")) { "high" -> "standard"; "standard" -> "low"; else -> "high" }
+            prefs.edit().putString("dock_position", next).apply()
+            refreshSettings()
+        })
+        root.addView(makeButton("Clock and date size  /  ${clockSize.uppercase(Locale.getDefault())}", "Cycle compact, standard and large header text") {
+            val next = when (prefs.getString("clock_size", "standard")) { "compact" -> "standard"; "standard" -> "large"; else -> "compact" }
+            prefs.edit().putString("clock_size", next).apply()
+            refreshSettings()
+        })
+
+        addSection(root, "03  /  CLOCK & DATE", "Choose what appears in the home screen header")
         val clockOn = prefs.getBoolean("show_clock", true)
         val dateOn = prefs.getBoolean("show_date", true)
         val timeFormat = prefs.getString("clock_format", "12h") ?: "12h"
@@ -115,7 +140,7 @@ class CleanTVSettingsActivity : Activity() {
             refreshSettings()
         })
 
-        addSection(root, "03  /  APPEARANCE", "Tune CleanTV's colours and overlay behaviour")
+        addSection(root, "04  /  APPEARANCE", "Tune CleanTV's colours and overlay behaviour")
         val accentName = when (prefs.getString("theme_accent", "crimson")) {
             "blue" -> "ICE BLUE"
             "green" -> "EMERALD"
@@ -165,7 +190,7 @@ class CleanTVSettingsActivity : Activity() {
             refreshSettings()
         })
 
-        addSection(root, "04  /  APP MANAGEMENT", "Choose what appears and arrange your home dock")
+        addSection(root, "05  /  APP MANAGEMENT", "Choose what appears and arrange your home dock")
         root.addView(makeButton("Hide / show apps", "Keep unwanted apps out of the App Drawer without uninstalling") {
             startActivity(Intent(this, HiddenAppsActivity::class.java))
         })
@@ -173,7 +198,7 @@ class CleanTVSettingsActivity : Activity() {
             startActivity(Intent(this, FavoritesActivity::class.java))
         })
 
-        addSection(root, "05  /  SYSTEM", "Device-level settings")
+        addSection(root, "06  /  SYSTEM", "Device-level settings")
         root.addView(makeButton("Android TV Settings", "Open the television's system settings") {
             try {
                 startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
