@@ -259,6 +259,11 @@ class AppDrawerActivity : Activity() {
 
     private fun categoryFor(app: AppEntry): Filter {
         val key = (app.label + " " + app.packageName).lowercase()
+        // File-transfer utilities are tools, even though their name contains "TV".
+        // Match both spaced labels and compact package-name forms.
+        val compactKey = key.replace(Regex("[^a-z0-9]"), "")
+        if ("sendfilestotv" in compactKey) return Filter.TOOLS
+
         val mediaWords = listOf(
             "tv", "video", "movie", "music", "stream", "prime", "netflix",
             "disney", "plex", "kodi", "youtube", "spotify", "tivimate",
