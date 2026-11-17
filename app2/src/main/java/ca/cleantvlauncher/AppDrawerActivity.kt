@@ -40,6 +40,9 @@ class AppDrawerActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        window.setDimAmount(0.62f)
+        window.setBackgroundDrawableResource(android.R.color.transparent)
         setContentView(R.layout.activity_drawer)
         allApps = loadLaunchableApps(packageManager, packageName)
         container = findViewById(R.id.drawer_container)
@@ -152,7 +155,7 @@ class AppDrawerActivity : Activity() {
                 val tile = LayoutInflater.from(this)
                     .inflate(R.layout.item_drawer_app, rowLayout, false)
                 tile.findViewById<ImageView>(R.id.drawer_app_banner)
-                    .setImageDrawable(app.banner ?: app.icon)
+                    .setImageDrawable(app.icon ?: app.banner)
                 tile.findViewById<TextView>(R.id.drawer_app_label).apply {
                     text = app.label
                     typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
