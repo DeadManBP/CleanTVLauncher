@@ -90,9 +90,9 @@ class CleanTVSettingsActivity : Activity() {
         })
 
         val dimLevels = listOf(0.0f, 0.25f, 0.4f, 0.5f, 0.65f, 0.75f)
-        val dimAmount = prefs.getFloat("wallpaper_dim_amount", 0.50f)
+        val wallpaperOverlayAmount = prefs.getFloat("wallpaper_dim_amount", 0.50f)
         root.addView(makeButton(
-            "Wallpaper dark overlay  /  " + (dimAmount * 100).toInt() + "%",
+            "Wallpaper dark overlay  /  " + (wallpaperOverlayAmount * 100).toInt() + "%",
             "Adjust darkness behind icons and text for readability"
         ) {
             val current = prefs.getFloat("wallpaper_dim_amount", 0.50f)
