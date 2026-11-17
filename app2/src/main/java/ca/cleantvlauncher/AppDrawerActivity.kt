@@ -211,7 +211,8 @@ class AppDrawerActivity : Activity() {
         val key = (app.label + " " + app.packageName).lowercase()
         val mediaWords = listOf(
             "tv", "video", "movie", "music", "stream", "prime", "netflix",
-            "disney", "plex", "kodi", "youtube", "spotify", "tivimate"
+            "disney", "plex", "kodi", "youtube", "spotify", "tivimate",
+            "crunchyroll", "fandango"
         )
         if (mediaWords.any { key.contains(it) }) return Filter.MEDIA
 
