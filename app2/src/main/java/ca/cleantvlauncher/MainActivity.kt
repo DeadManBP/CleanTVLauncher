@@ -9,6 +9,8 @@ import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -633,6 +635,19 @@ class MainActivity : Activity() {
             else -> ImageView.ScaleType.CENTER_CROP
         }
         wallpaperView.setImageBitmap(bitmap)
+        applyWallpaperAppearance()
+    }
+
+    /** Apply brightness to the image and darkness to the separate readability overlay. */
+    private fun applyWallpaperAppearance() {
+        val prefs = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+        val brightness = prefs.getFloat("wallpaper_brightness", 1.0f).coerceIn(0.65f, 1.30f)
+        val dimAmount = prefs.getFloat("wallpaper_dim_amount", 0.50f).coerceIn(0.0f, 0.80f)
+        val matrix = ColorMatrix().apply {
+            setScale(brightness, brightness, brightness, 1.0f)
+        }
+        wallpaperView.colorFilter = ColorMatrixColorFilter(matrix)
+        wallpaperDim.setBackgroundColor(Color.argb((dimAmount * 255).toInt(), 0, 0, 0))
     }
 
     /**
