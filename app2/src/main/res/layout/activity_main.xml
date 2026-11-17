@@ -46,8 +46,66 @@
         android:textSize="18sp" />
 
     <LinearLayout
+        android:id="@+id/weather_widget"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="40dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="9dp"
+        android:paddingBottom="9dp"
+        android:background="@drawable/weather_panel">
+
+        <TextView
+            android:id="@+id/weather_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☁"
+            android:textColor="#FFFFFF"
+            android:textSize="34sp"
+            android:gravity="center" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/weather_temp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--°"
+                android:textColor="#FFFFFF"
+                android:textSize="27sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/weather_condition"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Weather loading"
+                android:textColor="#D8E0EA"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/weather_highlow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="H --°  L --°"
+                android:textColor="#B9C6D6"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/hero_card"
-        android:layout_width="620dp"
+        android:layout_width="520dp"
         android:layout_height="180dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
@@ -72,7 +130,7 @@
 
         <ImageView
             android:id="@+id/hero_banner"
-            android:layout_width="560dp"
+            android:layout_width="460dp"
             android:layout_height="112dp"
             android:layout_marginTop="3dp"
             android:scaleType="fitCenter" />
