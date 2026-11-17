@@ -228,35 +228,70 @@ class MainActivity : Activity() {
         loadWallpaper()
     }
 
-    /** Fetch Brockville's current conditions and today's high/low from Open-Meteo. */
+    /** Fetch Brockville's current conditions and forecast from Environment and Climate Change Canada. */
     private fun loadWeather() {
         Thread {
             var connection: HttpURLConnection? = null
             try {
                 val endpoint = URL(
-                    "https://api.open-meteo.com/v1/forecast?latitude=44.5895&longitude=-75.6842&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=America%2FToronto&forecast_days=1"
+                    "https://weather.gc.ca/en/location/index.html?coords=44.597,-75.686"
                 )
                 connection = (endpoint.openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
-                    connectTimeout = 8000
-                    readTimeout = 8000
-                    setRequestProperty("Accept", "application/json")
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    setRequestProperty("Accept", "text/html")
+                    setRequestProperty("User-Agent", "CleanTVLauncher/2.0 (Android TV)")
                 }
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val json = JSONObject(response)
-                val current = json.getJSONObject("current")
-                val daily = json.getJSONObject("daily")
-                val temperature = current.getDouble("temperature_2m").toInt()
-                val code = current.getInt("weather_code")
-                val high = daily.getJSONArray("temperature_2m_max").getDouble(0).toInt()
-                val low = daily.getJSONArray("temperature_2m_min").getDouble(0).toInt()
-                val condition = weatherDescription(code)
-                val icon = weatherSymbol(code)
+                val html = connection.inputStream.bufferedReader().use { it.readText() }
+                val pageText = android.text.Html.fromHtml(
+                    html, android.text.Html.FROM_HTML_MODE_LEGACY
+                ).toString()
+                    .replace('\u00A0', ' ')
+                    .replace(Regex("\\s+"), " ")
+
+                val currentSection = pageText.substringAfter(
+                    "Current Conditions Observed at:", ""
+                ).substringBefore("More details")
+                val temperature = Regex(
+                    "Temperature:\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*°C"
+                ).find(currentSection)?.groupValues?.get(1)?.toDouble()?.toInt()
+                    ?: throw IllegalStateException("Current temperature not found")
+
+                val forecastSection = pageText.substringAfter("Detailed Forecast", "")
+                val high = Regex("\\bHigh\\s+(\\d+)").find(forecastSection)
+                    ?.groupValues?.get(1)?.toInt()
+                val low = Regex("\\bLow\\s+(\\d+)").find(forecastSection)
+                    ?.groupValues?.get(1)?.toInt()
+
+                val todayCondition = Regex(
+                    "Today\\s*\\d+°C(?:\\s*\\(Celsius\\))?\\s*(.*?)(?:Tonight|\\bMon\\b|\\bTue\\b|\\bWed\\b|\\bThu\\b|\\bFri\\b|\\bSat\\b|\\bSun\\b)",
+                    RegexOption.IGNORE_CASE
+                ).find(forecastSection)?.groupValues?.get(1)
+                    ?.trim()?.takeIf { it.isNotBlank() }
+                    ?: "Environment Canada"
+
+                val condition = todayCondition
+                    .replace(Regex("\\s+"), " ")
+                    .take(34)
+                val icon = when {
+                    condition.contains("thunder", true) -> "⚡"
+                    condition.contains("snow", true) || condition.contains("flurr", true) -> "❄"
+                    condition.contains("rain", true) || condition.contains("shower", true) -> "☂"
+                    condition.contains("fog", true) -> "≋"
+                    condition.contains("sun", true) || condition.contains("clear", true) -> "☀"
+                    else -> "☁"
+                }
+
                 runOnUiThread {
                     weatherIcon.text = icon
                     weatherTemp.text = "${temperature}°C"
                     weatherCondition.text = condition
-                    weatherHighLow.text = "H ${high}°   L ${low}°"
+                    weatherHighLow.text = if (high != null && low != null) {
+                        "H ${high}°   L ${low}°"
+                    } else {
+                        "Brockville forecast"
+                    }
                 }
             } catch (_: Exception) {
                 runOnUiThread {
