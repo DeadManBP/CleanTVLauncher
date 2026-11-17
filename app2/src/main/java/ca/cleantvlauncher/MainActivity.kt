@@ -29,6 +29,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.net.HttpURLConnection
+import java.net.URL
+import org.json.JSONObject
 
 /**
  * Clean TV v2 — tvOS-style apps-only Android TV launcher.
@@ -85,6 +88,10 @@ class MainActivity : Activity() {
     private lateinit var heroLabel: TextView
     private lateinit var wallpaperView: ImageView
     private lateinit var wallpaperDim: View
+    private lateinit var weatherIcon: TextView
+    private lateinit var weatherTemp: TextView
+    private lateinit var weatherCondition: TextView
+    private lateinit var weatherHighLow: TextView
     // Guard against the same app being launched twice from two handlers
     // firing for one centre press (tile key handler + tile click + Activity).
     private var lastLaunchAt = 0L
@@ -94,6 +101,12 @@ class MainActivity : Activity() {
         override fun run() {
             applyClockAndDateOptions()
             clockHandler.postDelayed(this, 30_000)
+        }
+    }
+    private val weatherTick = object : Runnable {
+        override fun run() {
+            loadWeather()
+            clockHandler.postDelayed(this, 30 * 60 * 1000L)
         }
     }
 
@@ -129,11 +142,16 @@ class MainActivity : Activity() {
         heroLabel.letterSpacing = 0.02f
         wallpaperView = findViewById(R.id.wallpaper)
         wallpaperDim = findViewById(R.id.wallpaper_dim)
+        weatherIcon = findViewById(R.id.weather_icon)
+        weatherTemp = findViewById(R.id.weather_temp)
+        weatherCondition = findViewById(R.id.weather_condition)
+        weatherHighLow = findViewById(R.id.weather_highlow)
         loadDock()
         maybeRequestStoragePermission()
         loadWallpaper()
         positionDockConsistently()
         clockHandler.post(clockTick)
+        clockHandler.post(weatherTick)
     }
 
     /** Single launch path, with a 500 ms guard against double-firing. */
@@ -170,6 +188,77 @@ class MainActivity : Activity() {
         // Refresh in case apps changed while we were away.
         loadDock()
         loadWallpaper()
+        loadWeather()
+    }
+
+    /** Fetch Brockville's current conditions and today's high/low from Open-Meteo. */
+    private fun loadWeather() {
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                val endpoint = URL(
+                    "https://api.open-meteo.com/v1/forecast?latitude=44.5895&longitude=-75.6842&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=America%2FToronto&forecast_days=1"
+                )
+                connection = (endpoint.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    setRequestProperty("Accept", "application/json")
+                }
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                val current = json.getJSONObject("current")
+                val daily = json.getJSONObject("daily")
+                val temperature = current.getDouble("temperature_2m").toInt()
+                val code = current.getInt("weather_code")
+                val high = daily.getJSONArray("temperature_2m_max").getDouble(0).toInt()
+                val low = daily.getJSONArray("temperature_2m_min").getDouble(0).toInt()
+                val condition = weatherDescription(code)
+                val icon = weatherSymbol(code)
+                runOnUiThread {
+                    weatherIcon.text = icon
+                    weatherTemp.text = "${temperature}°C"
+                    weatherCondition.text = condition
+                    weatherHighLow.text = "H ${high}°   L ${low}°"
+                }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    weatherIcon.text = "☁"
+                    weatherTemp.text = "--°"
+                    weatherCondition.text = "Weather unavailable"
+                    weatherHighLow.text = "Check internet connection"
+                }
+            } finally {
+                connection?.disconnect()
+            }
+        }.start()
+    }
+
+    private fun weatherDescription(code: Int): String = when (code) {
+        0 -> "Clear sky"
+        1 -> "Mostly clear"
+        2 -> "Partly cloudy"
+        3 -> "Overcast"
+        45, 48 -> "Fog"
+        51, 53, 55 -> "Drizzle"
+        56, 57 -> "Freezing drizzle"
+        61, 63, 65 -> "Rain"
+        66, 67 -> "Freezing rain"
+        71, 73, 75, 77 -> "Snow"
+        80, 81, 82 -> "Rain showers"
+        85, 86 -> "Snow showers"
+        95, 96, 99 -> "Thunderstorm"
+        else -> "Current conditions"
+    }
+
+    private fun weatherSymbol(code: Int): String = when (code) {
+        0, 1 -> "☀"
+        2, 3 -> "☁"
+        45, 48 -> "≋"
+        in 51..67, in 80..82 -> "☂"
+        in 71..77, 85, 86 -> "❄"
+        in 95..99 -> "⚡"
+        else -> "☁"
     }
 
     private fun dp(value: Int): Int =
@@ -549,6 +638,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         super.onDestroy()
         clockHandler.removeCallbacks(clockTick)
+        clockHandler.removeCallbacks(weatherTick)
     }
 
     override fun onBackPressed() {
