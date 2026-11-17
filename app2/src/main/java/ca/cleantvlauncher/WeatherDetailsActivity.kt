@@ -89,6 +89,8 @@ class WeatherDetailsActivity : Activity() {
                     addSection("5-DAY OUTLOOK")
                     if (days.isEmpty()) addMetric("Forecast", "Not available right now")
                     days.forEachIndexed { index, item -> addMetric("DAY " + (index + 1), item.first + "°  ·  " + item.second) }
+                    // Give the TV remote an obvious starting selection when the panel opens.
+                    content.post { content.getChildAt(1)?.requestFocus() }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("CleanTVWeather", "Expanded forecast failed", e)
@@ -146,16 +148,29 @@ class WeatherDetailsActivity : Activity() {
     private fun addMetric(name: String, value: String) {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            isFocusable = true
+            isClickable = true
             setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = GradientDrawable().apply {
-                cornerRadius = dp(8).toFloat()
-                setColor(Color.rgb(29, 35, 45))
-                setStroke(dp(1), Color.rgb(55, 64, 78))
+            background = metricBackground(false)
+            setOnFocusChangeListener { view, hasFocus ->
+                view.background = metricBackground(hasFocus)
+                view.scaleX = if (hasFocus) 1.025f else 1f
+                view.scaleY = if (hasFocus) 1.025f else 1f
+                view.elevation = if (hasFocus) dp(8).toFloat() else 0f
             }
         }
         row.addView(label(name.uppercase(Locale.getDefault()), muted, 10f, true))
         row.addView(label(value, Color.WHITE, 15f, false).apply { setPadding(0, dp(3), 0, 0) })
         content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+    }
+
+    private fun metricBackground(focused: Boolean) = GradientDrawable().apply {
+        cornerRadius = dp(8).toFloat()
+        setColor(if (focused) Color.rgb(63, 29, 39) else Color.rgb(29, 35, 45))
+        setStroke(
+            dp(if (focused) 2 else 1),
+            if (focused) accent else Color.rgb(55, 64, 78)
+        )
     }
 
     private fun label(value: String, color: Int, size: Float, bold: Boolean) = TextView(this).apply {
