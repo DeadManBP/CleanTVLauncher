@@ -651,6 +651,25 @@ fun saveFavouritePackages(context: Context, packages: List<String>) {
         .apply()
 }
 
+/** Hidden drawer apps are stored separately; hiding never uninstalls an app. */
+private const val PREF_HIDDEN_APPS = "hidden_apps"
+
+fun loadHiddenPackages(context: Context): Set<String> =
+    context.getSharedPreferences("clean_tv_prefs", Context.MODE_PRIVATE)
+        .getString(PREF_HIDDEN_APPS, "")
+        .orEmpty()
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .toSet()
+
+fun saveHiddenPackages(context: Context, packages: Set<String>) {
+    context.getSharedPreferences("clean_tv_prefs", Context.MODE_PRIVATE)
+        .edit()
+        .putString(PREF_HIDDEN_APPS, packages.sorted().joinToString(","))
+        .apply()
+}
+
 /** Persist a small, most-recent-first launch history for the App Drawer. */
 private const val PREF_RECENT_APPS = "recent_apps"
 
