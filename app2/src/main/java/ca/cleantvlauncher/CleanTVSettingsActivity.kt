@@ -165,7 +165,15 @@ class CleanTVSettingsActivity : Activity() {
             refreshSettings()
         })
 
-        addSection(root, "04  /  SYSTEM", "Device-level settings")
+        addSection(root, "04  /  APP MANAGEMENT", "Choose what appears and arrange your home dock")
+        root.addView(makeButton("Hide / show apps", "Keep unwanted apps out of the App Drawer without uninstalling") {
+            startActivity(Intent(this, HiddenAppsActivity::class.java))
+        })
+        root.addView(makeButton("Rearrange dock tiles", "Add favourites, remove them or move them up and down") {
+            startActivity(Intent(this, FavoritesActivity::class.java))
+        })
+
+        addSection(root, "05  /  SYSTEM", "Device-level settings")
         root.addView(makeButton("Android TV Settings", "Open the television's system settings") {
             try {
                 startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
