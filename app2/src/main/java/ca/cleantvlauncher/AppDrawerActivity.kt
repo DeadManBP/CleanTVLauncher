@@ -122,15 +122,17 @@ class AppDrawerActivity : Activity() {
 
     private fun renderApps(focusFirst: Boolean) {
         container.removeAllViews()
+        val hidden = loadHiddenPackages(this)
+        val visibleApps = allApps.filter { it.packageName !in hidden }
         val favourites = loadFavouritePackages(this).toSet()
         val recent = loadRecentPackages(this)
         val filtered = when (activeFilter) {
-            Filter.ALL -> allApps
-            Filter.FAVOURITES -> allApps.filter { it.packageName in favourites }
-            Filter.RECENT -> recent.mapNotNull { pkg -> allApps.find { it.packageName == pkg } }
-            Filter.MEDIA -> allApps.filter { categoryFor(it) == Filter.MEDIA }
-            Filter.GAMES -> allApps.filter { categoryFor(it) == Filter.GAMES }
-            Filter.TOOLS -> allApps.filter { categoryFor(it) == Filter.TOOLS }
+            Filter.ALL -> visibleApps
+            Filter.FAVOURITES -> visibleApps.filter { it.packageName in favourites }
+            Filter.RECENT -> recent.mapNotNull { pkg -> visibleApps.find { it.packageName == pkg } }
+            Filter.MEDIA -> visibleApps.filter { categoryFor(it) == Filter.MEDIA }
+            Filter.GAMES -> visibleApps.filter { categoryFor(it) == Filter.GAMES }
+            Filter.TOOLS -> visibleApps.filter { categoryFor(it) == Filter.TOOLS }
         }
 
         val entries = ArrayList<AppEntry>()
@@ -149,7 +151,7 @@ class AppDrawerActivity : Activity() {
             Filter.RECENT -> "RECENTLY USED"
             else -> activeFilter.title
         }
-        subtitle.text = "${filtered.size} apps  •  ${allApps.size} available"
+        subtitle.text = "${filtered.size} apps  •  ${visibleApps.size} visible"
         if (entries.isEmpty()) {
             val empty = TextView(this).apply {
                 text = if (activeFilter == Filter.RECENT) "Apps you launch will appear here."
