@@ -188,7 +188,6 @@ class MainActivity : Activity() {
         // Refresh in case apps changed while we were away.
         loadDock()
         loadWallpaper()
-        loadWeather()
     }
 
     /** Fetch Brockville's current conditions and today's high/low from Open-Meteo. */
