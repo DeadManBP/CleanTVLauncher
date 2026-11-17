@@ -2,8 +2,13 @@ package ca.cleantvlauncher
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.SystemClock
@@ -161,7 +166,7 @@ class AppDrawerActivity : Activity() {
                 val tile = LayoutInflater.from(this)
                     .inflate(R.layout.item_drawer_app, rowLayout, false)
                 tile.findViewById<ImageView>(R.id.drawer_app_banner)
-                    .setImageDrawable(app.icon ?: app.banner)
+                    .setImageDrawable(if (app.hasCustomIcon) app.icon else createFallbackIcon(app.label))
                 tile.findViewById<TextView>(R.id.drawer_app_label).apply {
                     text = app.label
                     typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
@@ -205,6 +210,38 @@ class AppDrawerActivity : Activity() {
             container.addView(rowLayout)
         }
         if (focusFirst) firstTile?.post { firstTile?.requestFocus() }
+    }
+
+    /** Draw a consistent CleanTV monogram for apps with generic system icons. */
+    private fun createFallbackIcon(label: String): BitmapDrawable {
+        val size = dp(96).coerceAtLeast(96)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val bounds = RectF(2f, 2f, size - 2f, size - 2f)
+        val radius = size * 0.22f
+
+        val background = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(27, 34, 45)
+        }
+        canvas.drawRoundRect(bounds, radius, radius, background)
+
+        val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(190, 43, 59)
+            style = Paint.Style.STROKE
+            strokeWidth = dp(2).toFloat()
+        }
+        canvas.drawRoundRect(bounds, radius, radius, border)
+
+        val initial = label.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            textSize = size * 0.48f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+        }
+        val baseline = size / 2f - (textPaint.ascent() + textPaint.descent()) / 2f
+        canvas.drawText(initial, size / 2f, baseline, textPaint)
+        return BitmapDrawable(resources, bitmap)
     }
 
     private fun categoryFor(app: AppEntry): Filter {
