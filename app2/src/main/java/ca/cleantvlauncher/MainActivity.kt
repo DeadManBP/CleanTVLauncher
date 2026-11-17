@@ -86,6 +86,7 @@ class MainActivity : Activity() {
     private lateinit var dateView: TextView
     private lateinit var heroBanner: ImageView
     private lateinit var heroLabel: TextView
+    private lateinit var heroCard: View
     private lateinit var wallpaperView: ImageView
     private lateinit var wallpaperDim: View
     private lateinit var weatherIcon: TextView
@@ -123,6 +124,38 @@ class MainActivity : Activity() {
         }
         clock.text = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
         dateView.text = SimpleDateFormat(datePattern, Locale.getDefault()).format(now)
+        val clockSize = when (prefs.getString("clock_size", "standard")) {
+            "compact" -> 36f
+            "large" -> 56f
+            else -> 48f
+        }
+        val dateSize = when (prefs.getString("clock_size", "standard")) {
+            "compact" -> 14f
+            "large" -> 21f
+            else -> 18f
+        }
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, clockSize)
+        dateView.setTextSize(TypedValue.COMPLEX_UNIT_SP, dateSize)
+    }
+
+    private fun applyHomeLayoutOptions() {
+        val prefs = getSharedPreferences("clean_tv_prefs", MODE_PRIVATE)
+        heroCard.visibility = if (prefs.getBoolean("hero_visible", true)) View.VISIBLE else View.GONE
+        val heroSize = prefs.getString("hero_size", "standard") ?: "standard"
+        val (widthDp, heightDp) = when (heroSize) {
+            "compact" -> 420 to 150
+            "large" -> 620 to 210
+            else -> 520 to 180
+        }
+        heroCard.layoutParams = (heroCard.layoutParams as android.widget.RelativeLayout.LayoutParams).apply {
+            width = dp(widthDp)
+            height = dp(heightDp)
+        }
+        heroBanner.layoutParams = (heroBanner.layoutParams as LinearLayout.LayoutParams).apply {
+            width = dp(widthDp - 60)
+            height = dp(heightDp - 68)
+        }
+        positionDockConsistently()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,6 +166,7 @@ class MainActivity : Activity() {
         dateView = findViewById(R.id.date)
         heroBanner = findViewById(R.id.hero_banner)
         heroLabel = findViewById(R.id.hero_label)
+        heroCard = findViewById(R.id.hero_card)
         // Match the industrial CleanTV typography across the home screen.
         clock.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
         clock.letterSpacing = 0.015f
@@ -149,6 +183,7 @@ class MainActivity : Activity() {
         loadDock()
         maybeRequestStoragePermission()
         loadWallpaper()
+        applyHomeLayoutOptions()
         positionDockConsistently()
         clockHandler.post(clockTick)
         clockHandler.post(weatherTick)
@@ -185,6 +220,7 @@ class MainActivity : Activity() {
         // Apply clock/date preferences immediately when returning from Settings.
         // The periodic tick remains as a fallback for keeping the clock current.
         applyClockAndDateOptions()
+        applyHomeLayoutOptions()
         // Refresh in case apps changed while we were away.
         loadDock()
         loadWallpaper()
@@ -281,7 +317,7 @@ class MainActivity : Activity() {
                 ?: return@post
             params.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
             params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_TOP)
-            params.topMargin = (availableHeight * 0.80f - dockScroll.height / 2f)
+            val dockPosition = when (getSharedPreferences("clean_tv_prefs", MODE_PRIVATE).getString("dock_position", "standard")) {\n                "high" -> 0.72f\n                "low" -> 0.88f\n                else -> 0.80f\n            }\n            params.topMargin = (availableHeight * dockPosition - dockScroll.height / 2f)
                 .toInt().coerceAtLeast(dp(8))
             params.bottomMargin = 0
             dockScroll.layoutParams = params
