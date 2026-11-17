@@ -30,6 +30,11 @@
         android:banner="@drawable/ic_launcher_foreground"
         android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
         <activity
+            android:name=".WeatherDetailsActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
