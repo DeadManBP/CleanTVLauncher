@@ -257,26 +257,12 @@ class AppDrawerActivity : Activity() {
         return BitmapDrawable(resources, bitmap)
     }
 
-    private fun categoryFor(app: AppEntry): Filter {
-        val key = (app.label + " " + app.packageName).lowercase()
-        // File-transfer utilities are tools, even though their name contains "TV".
-        // Match both spaced labels and compact package-name forms.
-        val compactKey = key.replace(Regex("[^a-z0-9]"), "")
-        if ("sendfilestotv" in compactKey) return Filter.TOOLS
-
-        val mediaWords = listOf(
-            "tv", "video", "movie", "music", "stream", "prime", "netflix",
-            "disney", "plex", "kodi", "youtube", "spotify", "tivimate",
-            "crunchyroll", "fandango"
-        )
-        if (mediaWords.any { key.contains(it) }) return Filter.MEDIA
-
-        val gameWords = listOf(
-            "game", "play games", "arcade", "xbox", "steam", "minecraft"
-        )
-        if (gameWords.any { key.contains(it) }) return Filter.GAMES
-        return Filter.TOOLS
-    }
+    private fun categoryFor(app: AppEntry): Filter =
+        when (AppCategoryClassifier.categoryFor(this, app)) {
+            AppCategory.MEDIA -> Filter.MEDIA
+            AppCategory.GAMES -> Filter.GAMES
+            AppCategory.TOOLS -> Filter.TOOLS
+        }
 
     private fun launchApp(app: AppEntry) {
         val now = SystemClock.uptimeMillis()
