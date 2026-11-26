@@ -764,61 +764,22 @@ data class AppEntry(
 )
 
 /**
- * The launchable apps on the device, A–Z, skipping ourselves and disabled
- * apps. Shared by the home dock and the app drawer.
+ * Compatibility entry point used by existing launcher screens. Discovery,
+ * package-change invalidation, icon metadata and sorting live in one manager.
  */
 fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> {
-    val seen = HashSet<String>()
-    val out = ArrayList<AppEntry>()
-    val intents = listOf(
-        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER),
-        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-    )
-    for (intent in intents) {
-        val found: List<ResolveInfo> = pm.queryIntentActivities(intent, 0)
-        for (ri in found) {
-            val key = ri.activityInfo.packageName + "/" + ri.activityInfo.name
-            if (!seen.add(key)) continue
-            if (ri.activityInfo.packageName == selfPackage) continue
-            // Skip apps disabled by the user (e.g. YouTube Music from debloat batch 2).
-            if (!ri.activityInfo.applicationInfo.enabled) continue
-            if (!ri.activityInfo.enabled) continue
-            val label = ri.loadLabel(pm).toString()
-            val icon = ri.activityInfo.loadIcon(pm)
-            // Treat icons supplied by the app package as custom artwork.
-            // Framework/shared generic icons get a CleanTV fallback in the drawer.
-            val iconResource = ri.activityInfo.getIconResource()
-            val hasCustomIcon = if (iconResource == 0) {
-                false
-            } else {
-                try {
-                    pm.getResourcesForApplication(ri.activityInfo.packageName)
-                        .getResourcePackageName(iconResource) == ri.activityInfo.packageName
-                } catch (_: Exception) {
-                    false
-                }
-            }
-            // Banner art for the hero area and the drawer; not every app has one.
-            val banner: Drawable? = try {
-                ri.activityInfo.loadBanner(pm)
-            } catch (e: Exception) {
-                null
-            }
-            // Use the system's own launch intent for the package: it is
-            // the correct Leanback/launcher intent for TV apps. Fall back
-            // to an explicit intent if the system has none.
-            val launch = pm.getLaunchIntentForPackage(ri.activityInfo.packageName)
-                ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                ?: Intent(Intent.ACTION_MAIN).apply {
-                    setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
-                    addCategory(Intent.CATEGORY_LAUNCHER)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-            out.add(AppEntry(label, ri.activityInfo.packageName, icon, banner, launch, hasCustomIcon))
-        }
+    val context = try {
+        // PackageManager does not expose its Context, so callers initialize
+        // the process-wide package listener through the explicit helper below.
+        null
+    } catch (_: Exception) {
+        null
     }
-    out.sortBy { it.label.lowercase(Locale.getDefault()) }
-    return out
+    return AppDiscoveryManager.getLaunchableApps(pm, selfPackage)
+}
+
+fun initializeAppDiscovery(context: Context) {
+    AppDiscoveryManager.ensurePackageChangeListener(context)
 }
 
 /**
