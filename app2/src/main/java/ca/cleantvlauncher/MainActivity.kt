@@ -163,6 +163,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        initializeAppDiscovery(this)
         dock = findViewById(R.id.app_dock)
         clock = findViewById(R.id.clock)
         dateView = findViewById(R.id.date)
@@ -767,16 +768,8 @@ data class AppEntry(
  * Compatibility entry point used by existing launcher screens. Discovery,
  * package-change invalidation, icon metadata and sorting live in one manager.
  */
-fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> {
-    val context = try {
-        // PackageManager does not expose its Context, so callers initialize
-        // the process-wide package listener through the explicit helper below.
-        null
-    } catch (_: Exception) {
-        null
-    }
-    return AppDiscoveryManager.getLaunchableApps(pm, selfPackage)
-}
+fun loadLaunchableApps(pm: PackageManager, selfPackage: String): List<AppEntry> =
+    AppDiscoveryManager.getLaunchableApps(pm, selfPackage)
 
 fun initializeAppDiscovery(context: Context) {
     AppDiscoveryManager.ensurePackageChangeListener(context)
