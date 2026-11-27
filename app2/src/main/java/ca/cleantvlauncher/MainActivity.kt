@@ -315,9 +315,9 @@ class MainActivity : Activity() {
                 active.packageName.substringAfterLast('.')
             }
             nowPlayingView.text = if (artist.isNullOrBlank()) {
-                "▶  NOW PLAYING  ·  $appName\\n$title"
+                "▶  NOW PLAYING  ·  $appName\n$title"
             } else {
-                "▶  NOW PLAYING  ·  $appName\\n$title  •  $artist"
+                "▶  NOW PLAYING  ·  $appName\n$title  •  $artist"
             }
             nowPlayingView.visibility = View.VISIBLE
         } catch (_: SecurityException) {
