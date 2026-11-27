@@ -125,7 +125,7 @@ class ControlCenterActivity : Activity() {
                 setStroke(dp(1), Color.rgb(68, 45, 53))
             }
             elevation = dp(18).toFloat()
-            addView(side, ScrollView.LayoutParams(ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT))
+            addView(side, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
         val width = minOf(dp(430), (resources.displayMetrics.widthPixels * 0.43f).toInt())
         scrim.addView(scroll, FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END))
