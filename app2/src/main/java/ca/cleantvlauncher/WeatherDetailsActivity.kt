@@ -94,7 +94,24 @@ class WeatherDetailsActivity : Activity() {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("CleanTVWeather", "Expanded forecast failed", e)
-                runOnUiThread { status.text = "Weather details unavailable. Check connection and try again." }
+                val cached = WeatherCache.load(this)
+                runOnUiThread {
+                    content.removeAllViews()
+                    if (cached != null) {
+                        status.text = "Offline · " + WeatherCache.staleLabel(cached.savedAt)
+                        addSection("LAST SAVED CONDITIONS")
+                        addMetric("Temperature", cached.temperature)
+                        addMetric("Condition", cached.condition)
+                        addMetric("Forecast", cached.highLow)
+                        addSection("CONNECTION STATUS")
+                        addMetric("Weather service", "Unavailable. Showing saved information.")
+                    } else {
+                        status.text = "Weather details unavailable. Check connection and try again."
+                        addSection("NO SAVED WEATHER")
+                        addMetric("Weather service", "Connect to the internet to load current conditions.")
+                    }
+                    content.post { content.getChildAt(1)?.requestFocus() }
+                }
             }
         }.start()
     }
