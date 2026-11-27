@@ -83,7 +83,9 @@
             android:focusable="true"
             android:clickable="true"
             android:background="@drawable/dock_pill"
-            android:contentDescription="Previous track" />
+            android:contentDescription="Previous track"
+            android:nextFocusLeft="@id/media_previous"
+            android:nextFocusRight="@id/media_play_pause" />
 
         <TextView
             android:id="@+id/media_play_pause"
@@ -97,7 +99,9 @@
             android:focusable="true"
             android:clickable="true"
             android:background="@drawable/dock_pill"
-            android:contentDescription="Play or pause" />
+            android:contentDescription="Play or pause"
+            android:nextFocusLeft="@id/media_previous"
+            android:nextFocusRight="@id/media_next" />
 
         <TextView
             android:id="@+id/media_next"
@@ -111,7 +115,9 @@
             android:focusable="true"
             android:clickable="true"
             android:background="@drawable/dock_pill"
-            android:contentDescription="Next track" />
+            android:contentDescription="Next track"
+            android:nextFocusLeft="@id/media_play_pause"
+            android:nextFocusRight="@id/media_next" />
     </LinearLayout>
 
     <LinearLayout
