@@ -34,6 +34,7 @@ import java.util.Locale
 import java.net.HttpURLConnection
 import java.net.URL
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Clean TV v2 — tvOS-style apps-only Android TV launcher.
@@ -100,6 +101,7 @@ class MainActivity : Activity() {
     private var lastLaunchAt = 0L
     private var lastLaunchPkg = ""
     private val clockHandler = Handler(Looper.getMainLooper())
+    private val weatherRefreshInProgress = AtomicBoolean(false)
     private val clockTick = object : Runnable {
         override fun run() {
             applyClockAndDateOptions()
@@ -183,6 +185,13 @@ class MainActivity : Activity() {
         weatherTemp = findViewById(R.id.weather_temp)
         weatherCondition = findViewById(R.id.weather_condition)
         weatherHighLow = findViewById(R.id.weather_highlow)
+        // Render the last successful result immediately; networking refreshes it in the background.
+        WeatherCache.load(this)?.let { cached ->
+            weatherIcon.text = cached.icon
+            weatherTemp.text = cached.temperature
+            weatherCondition.text = cached.condition
+            weatherHighLow.text = WeatherCache.staleLabel(cached.savedAt)
+        }
         findViewById<View>(R.id.weather_widget).apply {
             isFocusable = true
             isClickable = true
@@ -243,6 +252,7 @@ class MainActivity : Activity() {
 
     /** Fetch Brockville's current conditions and forecast from Environment and Climate Change Canada. */
     private fun loadWeather() {
+        if (!weatherRefreshInProgress.compareAndSet(false, true)) return
         Thread {
             var connection: HttpURLConnection? = null
             try {
@@ -300,26 +310,40 @@ class MainActivity : Activity() {
                     else -> "☁"
                 }
 
+                val highLow = if (high != null && low != null) {
+                    "H ${high}°   L ${low}°"
+                } else {
+                    "Brockville forecast"
+                }
+                WeatherCache.save(
+                    this,
+                    CachedWeather(icon, "${temperature}°C", condition, highLow, System.currentTimeMillis())
+                )
                 runOnUiThread {
                     weatherIcon.text = icon
                     weatherTemp.text = "${temperature}°C"
                     weatherCondition.text = condition
-                    weatherHighLow.text = if (high != null && low != null) {
-                        "H ${high}°   L ${low}°"
-                    } else {
-                        "Brockville forecast"
-                    }
+                    weatherHighLow.text = highLow
                 }
             } catch (e: Exception) {
                 android.util.Log.e("CleanTVWeather", "ECCC weather refresh failed", e)
+                val cached = WeatherCache.load(this)
                 runOnUiThread {
-                    weatherIcon.text = "☁"
-                    weatherTemp.text = "--°"
-                    weatherCondition.text = "Weather unavailable"
-                    weatherHighLow.text = "Check internet connection"
+                    if (cached != null) {
+                        weatherIcon.text = cached.icon
+                        weatherTemp.text = cached.temperature
+                        weatherCondition.text = cached.condition
+                        weatherHighLow.text = WeatherCache.staleLabel(cached.savedAt)
+                    } else {
+                        weatherIcon.text = "☁"
+                        weatherTemp.text = "--°"
+                        weatherCondition.text = "Weather unavailable"
+                        weatherHighLow.text = "Check internet connection"
+                    }
                 }
             } finally {
                 connection?.disconnect()
+                weatherRefreshInProgress.set(false)
             }
         }.start()
     }
