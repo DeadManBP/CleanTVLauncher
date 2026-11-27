@@ -46,13 +46,20 @@
         android:textSize="18sp" />
 
     <LinearLayout
-        android:id="@+id/weather_widget"
+        android:id="@+id/weather_stack"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="30dp"
         android:layout_marginEnd="40dp"
+        android:orientation="vertical"
+        android:gravity="end">
+
+    <LinearLayout
+        android:id="@+id/weather_widget"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
@@ -101,6 +108,24 @@
                 android:textColor="#B9C6D6"
                 android:textSize="12sp" />
         </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/network_speed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp"
+        android:background="@drawable/weather_panel"
+        android:text="↓ -- KB/s   ↑ -- KB/s"
+        android:textColor="#D8E0EA"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center_vertical" />
+
     </LinearLayout>
 
     <LinearLayout
