@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.media.tv.TvContract
+import android.media.tv.TvInputManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -68,6 +70,7 @@ class ControlCenterActivity : Activity() {
         side.addView(actionButton("XBOX  /  HDMI 1", "Switch directly to the Xbox input") {
             launchXbox()
         })
+        addAvailableTvInputs(side)
         addSection(side, "TV CONTROLS")
         side.addView(actionButton("NETWORK", "Wi-Fi and network connections") {
             openSettings(Settings.ACTION_WIFI_SETTINGS)
@@ -138,6 +141,48 @@ class ControlCenterActivity : Activity() {
         cornerRadius = dp(9).toFloat()
         setColor(if (focused) Color.rgb(63, 25, 34) else Color.rgb(29, 35, 45))
         setStroke(dp(if (focused) 2 else 1), if (focused) accent else Color.rgb(55, 64, 78))
+    }
+
+    /**
+     * Discover passthrough inputs exposed by the TV instead of assuming every
+     * manufacturer uses the same HDMI input identifiers.
+     */
+    private fun addAvailableTvInputs(root: LinearLayout) {
+        val inputs = try {
+            val manager = getSystemService(TV_INPUT_SERVICE) as? TvInputManager
+            manager?.tvInputList
+                ?.filter { it.isPassthroughInput }
+                ?.distinctBy { it.id }
+                .orEmpty()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        if (inputs.isEmpty()) return
+
+        addSection(root, "AVAILABLE TV INPUTS")
+        inputs.forEachIndexed { index, input ->
+            val label = try {
+                input.loadLabel(this)?.toString()?.takeIf { it.isNotBlank() }
+            } catch (_: Exception) {
+                null
+            } ?: "TV Input ${index + 1}"
+
+            // The existing Xbox shortcut remains pinned above. Avoid showing
+            // an identical duplicate when the TV labels that input as HDMI 1.
+            if (label.contains("HDMI 1", ignoreCase = true) ||
+                label.contains("Xbox", ignoreCase = true)) return@forEachIndexed
+
+            root.addView(actionButton(label.uppercase(), "Switch to this TV input") {
+                try {
+                    val uri = TvContract.buildChannelUriForPassthroughInput(input.id)
+                    startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    finish()
+                } catch (_: Exception) {
+                    openSettings(Settings.ACTION_SETTINGS)
+                }
+            })
+        }
     }
 
     private fun launchXbox() {
