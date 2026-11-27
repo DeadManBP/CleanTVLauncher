@@ -19,6 +19,7 @@ import java.util.Locale
 class CleanTVSettingsActivity : Activity() {
 
     private val prefs by lazy { getSharedPreferences("clean_tv_prefs", MODE_PRIVATE) }
+    private var awaitingHomeSelection = false
 
     private val backgroundColor = Color.rgb(11, 13, 18)
     private val panelColor = Color.rgb(23, 27, 36)
@@ -225,6 +226,21 @@ class CleanTVSettingsActivity : Activity() {
         })
 
         addSection(root, "06  /  SYSTEM", "Device-level settings")
+        val isDefaultHome = HomeIntegrationManager.isDefaultHome(this)
+        root.addView(makeButton(
+            if (isDefaultHome) "CleanTV default Home  /  ACTIVE" else "Set CleanTV as default Home",
+            if (isDefaultHome) "CleanTV is currently registered as the device Home app" else "Choose CleanTV when Android asks which launcher to use"
+        ) {
+            awaitingHomeSelection = true
+            if (!HomeIntegrationManager.requestDefaultHome(this)) {
+                awaitingHomeSelection = false
+                android.widget.Toast.makeText(
+                    this,
+                    "This TV does not expose a Home-app selection screen.",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        })
         root.addView(makeButton("Android TV Settings", "Open the television's system settings") {
             try {
                 startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
@@ -259,6 +275,14 @@ class CleanTVSettingsActivity : Activity() {
         ))
         setContentView(scrim)
         root.post { root.findViewWithTag<View>("first-setting")?.requestFocus() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (awaitingHomeSelection) {
+            awaitingHomeSelection = false
+            recreate()
+        }
     }
 
     private fun addSection(root: LinearLayout, title: String, subtitle: String) {
