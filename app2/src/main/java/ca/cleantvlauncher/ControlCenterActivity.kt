@@ -29,6 +29,7 @@ class ControlCenterActivity : Activity() {
     private val muted = Color.rgb(157, 167, 181)
     private var networkStatusView: TextView? = null
     private var volumeStatusView: TextView? = null
+    private var brightnessStatusView: TextView? = null
     private var audioManager: AudioManager? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,8 +111,31 @@ class ControlCenterActivity : Activity() {
         side.addView(volumeRow)
 
         addSection(side, "DISPLAY")
-        side.addView(actionButton("BRIGHTNESS  −", "Reduce screen brightness") { adjustBrightness(-16) })
-        side.addView(actionButton("BRIGHTNESS  +", "Increase screen brightness") { adjustBrightness(16) })
+        brightnessStatusView = TextView(this).apply {
+            textSize = 13f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), 0, dp(12), 0)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                setColor(Color.rgb(29, 35, 45))
+                setStroke(dp(1), Color.rgb(55, 64, 78))
+            }
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(38)).apply { bottomMargin = dp(7) }
+            isFocusable = true
+            isFocusableInTouchMode = true
+            setOnClickListener { requestBrightnessAccess() }
+        }
+        side.addView(brightnessStatusView)
+        val brightnessRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)).apply { bottomMargin = dp(9) }
+        }
+        brightnessRow.addView(volumeButton("BRIGHTNESS  −") { adjustBrightness(-16) }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { marginEnd = dp(6) })
+        brightnessRow.addView(volumeButton("BRIGHTNESS  +") { adjustBrightness(16) }, LinearLayout.LayoutParams(0, dp(44), 1f))
+        side.addView(brightnessRow)
         side.addView(actionButton("DISPLAY SETTINGS", "Open the TV picture and display menu") { openSettings(Settings.ACTION_DISPLAY_SETTINGS) })
 
         addSection(side, "INPUT")
@@ -171,6 +195,7 @@ class ControlCenterActivity : Activity() {
         super.onResume()
         refreshNetworkStatus()
         refreshVolumeStatus()
+        refreshBrightnessStatus()
     }
 
 
@@ -245,13 +270,7 @@ class ControlCenterActivity : Activity() {
     private fun adjustBrightness(change: Int) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
             !Settings.System.canWrite(this)) {
-            try {
-                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                    data = android.net.Uri.parse("package:$packageName")
-                })
-            } catch (_: Exception) {
-                openSettings(Settings.ACTION_DISPLAY_SETTINGS)
-            }
+            brightnessStatusView?.text = "BRIGHTNESS ACCESS REQUIRED  ·  SELECT TO ENABLE"
             return
         }
 
@@ -262,13 +281,46 @@ class ControlCenterActivity : Activity() {
                 128
             )
             val updated = (current + change).coerceIn(1, 255)
-            Settings.System.putInt(
+            val saved = Settings.System.putInt(
                 contentResolver,
                 Settings.System.SCREEN_BRIGHTNESS,
                 updated
             )
-        } catch (_: SecurityException) {
-            openSettings(Settings.ACTION_DISPLAY_SETTINGS)
+            if (saved) refreshBrightnessStatus()
+            else brightnessStatusView?.text = "TV DOES NOT ALLOW APP BRIGHTNESS CONTROL"
+        } catch (_: Exception) {
+            brightnessStatusView?.text = "BRIGHTNESS CONTROL NOT AVAILABLE ON THIS TV"
+        }
+    }
+
+    private fun refreshBrightnessStatus() {
+        brightnessStatusView?.text = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
+                !Settings.System.canWrite(this)) {
+                "BRIGHTNESS ACCESS REQUIRED  ·  SELECT TO ENABLE"
+            } else {
+                val value = Settings.System.getInt(
+                    contentResolver,
+                    Settings.System.SCREEN_BRIGHTNESS,
+                    128
+                ).coerceIn(0, 255)
+                "SCREEN BRIGHTNESS  ·  $value / 255  (${value * 100 / 255}%)"
+            }
+        } catch (_: Exception) {
+            "SCREEN BRIGHTNESS  ·  STATUS UNAVAILABLE"
+        }
+    }
+
+    private fun requestBrightnessAccess() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M ||
+            Settings.System.canWrite(this)) {
+            refreshBrightnessStatus()
+            return
+        }
+        try {
+            startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                data = android.net.Uri.parse("package:$packageName")
+            })
         } catch (_: Exception) {
             openSettings(Settings.ACTION_DISPLAY_SETTINGS)
         }
