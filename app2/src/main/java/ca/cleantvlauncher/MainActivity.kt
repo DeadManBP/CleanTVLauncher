@@ -158,9 +158,9 @@ class MainActivity : Activity() {
         heroCard.visibility = if (prefs.getBoolean("hero_visible", true)) View.VISIBLE else View.GONE
         val heroSize = prefs.getString("hero_size", "standard") ?: "standard"
         val (widthDp, heightDp) = when (heroSize) {
-            "compact" -> 300 to 150
-            "large" -> 380 to 190
-            else -> 340 to 170
+            "compact" -> 300 to 142
+            "large" -> 380 to 182
+            else -> 340 to 162
         }
         heroCard.layoutParams = (heroCard.layoutParams as android.widget.RelativeLayout.LayoutParams).apply {
             width = dp(widthDp)
@@ -168,7 +168,7 @@ class MainActivity : Activity() {
         }
         heroBanner.layoutParams = (heroBanner.layoutParams as LinearLayout.LayoutParams).apply {
             width = dp(widthDp - 44)
-            height = dp(heightDp - 62)
+            height = dp(heightDp - 74)
         }
         positionDockConsistently()
     }
