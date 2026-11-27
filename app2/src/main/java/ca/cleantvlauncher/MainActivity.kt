@@ -218,6 +218,28 @@ class MainActivity : Activity() {
         mediaPrevious = findViewById(R.id.media_previous)
         mediaPlayPause = findViewById(R.id.media_play_pause)
         mediaNext = findViewById(R.id.media_next)
+        listOf(mediaPrevious, mediaPlayPause, mediaNext).forEach { control ->
+            control.isFocusable = true
+            control.isFocusableInTouchMode = true
+            control.isClickable = true
+            control.setOnFocusChangeListener { view, focused ->
+                view.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(10).toFloat()
+                    setColor(if (focused) 0xCC174F91.toInt() else 0x66304058)
+                    setStroke(dp(if (focused) 3 else 1), if (focused) 0xFF35D7FF.toInt() else 0x887DADEB.toInt())
+                }
+                view.scaleX = if (focused) 1.08f else 1f
+                view.scaleY = if (focused) 1.08f else 1f
+            }
+            control.setOnKeyListener { view, keyCode, event ->
+                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) &&
+                    event.action == KeyEvent.ACTION_UP) {
+                    view.performClick()
+                    true
+                } else false
+            }
+        }
         mediaPrevious.setOnClickListener { sendMediaCommand { it.skipToPrevious() } }
         mediaPlayPause.setOnClickListener {
             val state = activeMediaController?.playbackState?.state
@@ -361,28 +383,22 @@ class MainActivity : Activity() {
         } catch (_: IllegalStateException) {
             // Ignore sessions that stop while a remote command is being sent.
         }
-        refreshNowPlaying()
+        // Let the media app process the command before querying its session again.
+        clockHandler.postDelayed({ refreshNowPlaying() }, 900)
     }
 
     private fun updateMediaControlAvailability(state: PlaybackState?) {
-        val actions = state?.actions ?: 0L
         val playing = state?.state == PlaybackState.STATE_PLAYING ||
             state?.state == PlaybackState.STATE_BUFFERING
-        setMediaControlEnabled(mediaPrevious, actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS != 0L)
-        setMediaControlEnabled(mediaNext, actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L)
-        setMediaControlEnabled(
-            mediaPlayPause,
-            actions and (if (playing) PlaybackState.ACTION_PAUSE else PlaybackState.ACTION_PLAY) != 0L
-        )
         mediaPlayPause.text = if (playing) "Ⅱ" else "▶"
         mediaPlayPause.contentDescription = if (playing) "Pause" else "Play"
-    }
-
-    private fun setMediaControlEnabled(view: TextView, enabled: Boolean) {
-        view.isEnabled = enabled
-        view.alpha = if (enabled) 1f else 0.35f
-        view.isFocusable = enabled
-        view.isClickable = enabled
+        // Keep all controls focusable even when the session does not advertise an action.
+        // Some TV apps expose incomplete action flags but still handle transport commands.
+        listOf(mediaPrevious, mediaPlayPause, mediaNext).forEach {
+            it.isEnabled = true
+            it.isFocusable = true
+            it.isClickable = true
+        }
     }
 
     /** Show whole-device network throughput using Android's cumulative traffic counters. */
