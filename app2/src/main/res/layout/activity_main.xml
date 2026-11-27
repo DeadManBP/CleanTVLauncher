@@ -131,7 +131,7 @@
     <LinearLayout
         android:id="@+id/hero_card"
         android:layout_width="440dp"
-        android:layout_height="164dp"
+        android:layout_height="162dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="42dp"
@@ -156,7 +156,7 @@
         <ImageView
             android:id="@+id/hero_banner"
             android:layout_width="380dp"
-            android:layout_height="96dp"
+            android:layout_height="88dp"
             android:layout_marginTop="3dp"
             android:scaleType="fitCenter" />
 
@@ -166,7 +166,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="#FFFFFF"
-            android:textSize="23sp"
+            android:textSize="22sp"
+            android:includeFontPadding="false"
             android:textStyle="bold" />
     </LinearLayout>
 
