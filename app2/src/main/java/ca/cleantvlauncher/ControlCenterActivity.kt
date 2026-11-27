@@ -109,6 +109,11 @@ class ControlCenterActivity : Activity() {
         volumeRow.addView(volumeButton("VOL +") { adjustVolume(1) }, LinearLayout.LayoutParams(0, dp(44), 1f))
         side.addView(volumeRow)
 
+        addSection(side, "DISPLAY")
+        side.addView(actionButton("BRIGHTNESS  −", "Reduce screen brightness") { adjustBrightness(-16) })
+        side.addView(actionButton("BRIGHTNESS  +", "Increase screen brightness") { adjustBrightness(16) })
+        side.addView(actionButton("DISPLAY SETTINGS", "Open the TV picture and display menu") { openSettings(Settings.ACTION_DISPLAY_SETTINGS) })
+
         addSection(side, "INPUT")
         val xboxButton = actionButton("XBOX  /  HDMI 1", "Switch directly to the Xbox input") {
             launchXbox()
@@ -233,6 +238,39 @@ class ControlCenterActivity : Activity() {
             else "SYSTEM VOLUME  ·  $current / $maximum  (${current * 100 / maximum}%)"
         } catch (_: Exception) {
             "SYSTEM VOLUME  ·  STATUS UNAVAILABLE"
+        }
+    }
+
+
+    private fun adjustBrightness(change: Int) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
+            !Settings.System.canWrite(this)) {
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                })
+            } catch (_: Exception) {
+                openSettings(Settings.ACTION_DISPLAY_SETTINGS)
+            }
+            return
+        }
+
+        try {
+            val current = Settings.System.getInt(
+                contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS,
+                128
+            )
+            val updated = (current + change).coerceIn(1, 255)
+            Settings.System.putInt(
+                contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS,
+                updated
+            )
+        } catch (_: SecurityException) {
+            openSettings(Settings.ACTION_DISPLAY_SETTINGS)
+        } catch (_: Exception) {
+            openSettings(Settings.ACTION_DISPLAY_SETTINGS)
         }
     }
 
