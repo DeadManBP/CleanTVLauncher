@@ -124,7 +124,7 @@ class ControlCenterActivity : Activity() {
             }
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(38)).apply { bottomMargin = dp(7) }
         }
-        brightnessStatusView.text = "PANEL BRIGHTNESS  ·  CONTROLLED BY TV PICTURE SETTINGS"
+        brightnessStatusView?.text = "PANEL BRIGHTNESS  ·  CONTROLLED BY TV PICTURE SETTINGS"
         side.addView(brightnessStatusView)
         side.addView(actionButton("DISPLAY SETTINGS", "Open the TV picture and display menu") { openSettings(Settings.ACTION_DISPLAY_SETTINGS) })
 
