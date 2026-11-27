@@ -22,6 +22,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.net.TrafficStats
 import android.media.session.MediaSessionManager
+import android.media.session.MediaController
 import android.media.session.PlaybackState
 import android.media.MediaMetadata
 import android.provider.Settings
@@ -103,7 +104,11 @@ class MainActivity : Activity() {
     private lateinit var weatherHighLow: TextView
     private lateinit var networkSpeed: TextView
     private lateinit var nowPlayingView: TextView
+    private lateinit var mediaPrevious: TextView
+    private lateinit var mediaPlayPause: TextView
+    private lateinit var mediaNext: TextView
     private var mediaSessionManager: MediaSessionManager? = null
+    private var activeMediaController: MediaController? = null
     private var lastRxBytes = TrafficStats.getTotalRxBytes()
     private var lastTxBytes = TrafficStats.getTotalTxBytes()
     private var lastNetworkSampleAt = SystemClock.elapsedRealtime()
@@ -209,7 +214,22 @@ class MainActivity : Activity() {
         weatherCondition = findViewById(R.id.weather_condition)
         weatherHighLow = findViewById(R.id.weather_highlow)
         networkSpeed = findViewById(R.id.network_speed)
-        nowPlayingView = findViewById(R.id.now_playing)
+        nowPlayingView = findViewById(R.id.now_playing_text)
+        mediaPrevious = findViewById(R.id.media_previous)
+        mediaPlayPause = findViewById(R.id.media_play_pause)
+        mediaNext = findViewById(R.id.media_next)
+        mediaPrevious.setOnClickListener { sendMediaCommand { it.skipToPrevious() } }
+        mediaPlayPause.setOnClickListener {
+            val state = activeMediaController?.playbackState?.state
+            sendMediaCommand { controls ->
+                if (state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_BUFFERING) {
+                    controls.pause()
+                } else {
+                    controls.play()
+                }
+            }
+        }
+        mediaNext.setOnClickListener { sendMediaCommand { it.skipToNext() } }
         mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
         // Render the last successful result immediately; networking refreshes it in the background.
         WeatherCache.load(this)?.let { cached ->
@@ -299,9 +319,11 @@ class MainActivity : Activity() {
                     state == PlaybackState.STATE_CONNECTING
             }
             if (active == null) {
-                nowPlayingView.visibility = View.GONE
+                activeMediaController = null
+                findViewById<View>(R.id.now_playing_panel).visibility = View.GONE
                 return
             }
+            activeMediaController = active
             val metadata = active.metadata
             val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
                 ?.takeIf { it.isNotBlank() } ?: "Media playing"
@@ -320,11 +342,47 @@ class MainActivity : Activity() {
                 "▶  NOW PLAYING  ·  $appName\n$title  •  $artist"
             }
             nowPlayingView.visibility = View.VISIBLE
+            findViewById<View>(R.id.now_playing_panel).visibility = View.VISIBLE
+            updateMediaControlAvailability(active.playbackState)
         } catch (_: SecurityException) {
-            nowPlayingView.visibility = View.GONE
+            activeMediaController = null
+            findViewById<View>(R.id.now_playing_panel).visibility = View.GONE
         } catch (_: Exception) {
-            nowPlayingView.visibility = View.GONE
+            activeMediaController = null
+            findViewById<View>(R.id.now_playing_panel).visibility = View.GONE
         }
+    }
+
+    private fun sendMediaCommand(command: (MediaController.TransportControls) -> Unit) {
+        try {
+            activeMediaController?.transportControls?.let(command)
+        } catch (_: SecurityException) {
+            // The media app may revoke its session between refreshes.
+        } catch (_: IllegalStateException) {
+            // Ignore sessions that stop while a remote command is being sent.
+        }
+        refreshNowPlaying()
+    }
+
+    private fun updateMediaControlAvailability(state: PlaybackState?) {
+        val actions = state?.actions ?: 0L
+        val playing = state?.state == PlaybackState.STATE_PLAYING ||
+            state?.state == PlaybackState.STATE_BUFFERING
+        setMediaControlEnabled(mediaPrevious, actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS != 0L)
+        setMediaControlEnabled(mediaNext, actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L)
+        setMediaControlEnabled(
+            mediaPlayPause,
+            actions and (if (playing) PlaybackState.ACTION_PAUSE else PlaybackState.ACTION_PLAY) != 0L
+        )
+        mediaPlayPause.text = if (playing) "Ⅱ" else "▶"
+        mediaPlayPause.contentDescription = if (playing) "Pause" else "Play"
+    }
+
+    private fun setMediaControlEnabled(view: TextView, enabled: Boolean) {
+        view.isEnabled = enabled
+        view.alpha = if (enabled) 1f else 0.35f
+        view.isFocusable = enabled
+        view.isClickable = enabled
     }
 
     /** Show whole-device network throughput using Android's cumulative traffic counters. */
