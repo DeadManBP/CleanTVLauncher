@@ -45,24 +45,74 @@
         android:textColor="#D8D8D8"
         android:textSize="18sp" />
 
-    <TextView
-        android:id="@+id/now_playing"
+    <LinearLayout
+        android:id="@+id/now_playing_panel"
         android:layout_width="440dp"
         android:layout_height="wrap_content"
         android:layout_below="@id/hero_card"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="8dp"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingTop="7dp"
-        android:paddingBottom="7dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
         android:background="@drawable/weather_panel"
-        android:textColor="#FFFFFF"
-        android:textSize="12sp"
-        android:gravity="center"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:visibility="gone" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/now_playing_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/media_previous"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:text="|◀"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="@drawable/dock_pill"
+            android:contentDescription="Previous track" />
+
+        <TextView
+            android:id="@+id/media_play_pause"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:gravity="center"
+            android:text="▶"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="@drawable/dock_pill"
+            android:contentDescription="Play or pause" />
+
+        <TextView
+            android:id="@+id/media_next"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:gravity="center"
+            android:text="▶|"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="@drawable/dock_pill"
+            android:contentDescription="Next track" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/weather_stack"
