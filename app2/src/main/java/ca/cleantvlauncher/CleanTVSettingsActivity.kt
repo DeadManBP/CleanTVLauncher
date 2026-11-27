@@ -225,7 +225,22 @@ class CleanTVSettingsActivity : Activity() {
             startActivity(Intent(this, FavoritesActivity::class.java))
         })
 
-        addSection(root, "06  /  SYSTEM", "Device-level settings")
+        addSection(root, "06  /  MEDIA", "Allow CleanTV to identify active playback sessions")
+        val mediaAccessEnabled = android.provider.Settings.Secure.getString(
+            contentResolver, "enabled_notification_listeners"
+        )?.contains(packageName) == true
+        root.addView(makeButton(
+            if (mediaAccessEnabled) "Media detection  /  ENABLED" else "Enable media detection",
+            if (mediaAccessEnabled) "CleanTV can read active media titles and playback state" else "Allow notification access to show Now Playing on the home screen"
+        ) {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            } catch (_: Exception) {
+                android.widget.Toast.makeText(this, "Notification access settings are unavailable on this TV.", android.widget.Toast.LENGTH_LONG).show()
+            }
+        })
+
+        addSection(root, "07  /  SYSTEM", "Device-level settings")
         val isDefaultHome = HomeIntegrationManager.isDefaultHome(this)
         root.addView(makeButton(
             if (isDefaultHome) "CleanTV default Home  /  ACTIVE" else "Set CleanTV as default Home",
