@@ -3,6 +3,7 @@ package ca.cleantvlauncher
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
@@ -20,6 +21,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.net.TrafficStats
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
+import android.media.MediaMetadata
 import android.provider.Settings
 import android.util.TypedValue
 import android.view.KeyEvent
@@ -98,6 +102,8 @@ class MainActivity : Activity() {
     private lateinit var weatherCondition: TextView
     private lateinit var weatherHighLow: TextView
     private lateinit var networkSpeed: TextView
+    private lateinit var nowPlayingView: TextView
+    private var mediaSessionManager: MediaSessionManager? = null
     private var lastRxBytes = TrafficStats.getTotalRxBytes()
     private var lastTxBytes = TrafficStats.getTotalTxBytes()
     private var lastNetworkSampleAt = SystemClock.elapsedRealtime()
@@ -117,6 +123,12 @@ class MainActivity : Activity() {
         override fun run() {
             refreshNetworkSpeed()
             clockHandler.postDelayed(this, 2000)
+        }
+    }
+    private val mediaTick = object : Runnable {
+        override fun run() {
+            refreshNowPlaying()
+            clockHandler.postDelayed(this, 3000)
         }
     }
     private val weatherTick = object : Runnable {
@@ -197,6 +209,8 @@ class MainActivity : Activity() {
         weatherCondition = findViewById(R.id.weather_condition)
         weatherHighLow = findViewById(R.id.weather_highlow)
         networkSpeed = findViewById(R.id.network_speed)
+        nowPlayingView = findViewById(R.id.now_playing)
+        mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
         // Render the last successful result immediately; networking refreshes it in the background.
         WeatherCache.load(this)?.let { cached ->
             weatherIcon.text = cached.icon
@@ -224,6 +238,7 @@ class MainActivity : Activity() {
         clockHandler.post(clockTick)
         clockHandler.post(weatherTick)
         clockHandler.post(networkTick)
+        clockHandler.post(mediaTick)
     }
 
     /** Single launch path, with a 500 ms guard against double-firing. */
@@ -261,6 +276,55 @@ class MainActivity : Activity() {
         // Refresh in case apps changed while we were away.
         loadDock()
         loadWallpaper()
+        refreshNowPlaying()
+        clockHandler.removeCallbacks(mediaTick)
+        clockHandler.post(mediaTick)
+    }
+
+    override fun onPause() {
+        clockHandler.removeCallbacks(mediaTick)
+        super.onPause()
+    }
+
+    /** Read active TV media sessions when notification access has been granted. */
+    private fun refreshNowPlaying() {
+        try {
+            val sessions = mediaSessionManager?.getActiveSessions(
+                ComponentName(this, MediaSessionBridgeService::class.java)
+            ).orEmpty()
+            val active = sessions.firstOrNull { session ->
+                val state = session.playbackState?.state
+                state == PlaybackState.STATE_PLAYING ||
+                    state == PlaybackState.STATE_BUFFERING ||
+                    state == PlaybackState.STATE_CONNECTING
+            }
+            if (active == null) {
+                nowPlayingView.visibility = View.GONE
+                return
+            }
+            val metadata = active.metadata
+            val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
+                ?.takeIf { it.isNotBlank() } ?: "Media playing"
+            val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                ?.takeIf { it.isNotBlank() }
+            val appName = try {
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(active.packageName, 0)
+                ).toString()
+            } catch (_: Exception) {
+                active.packageName.substringAfterLast('.')
+            }
+            nowPlayingView.text = if (artist.isNullOrBlank()) {
+                "▶  NOW PLAYING  ·  $appName\\n$title"
+            } else {
+                "▶  NOW PLAYING  ·  $appName\\n$title  •  $artist"
+            }
+            nowPlayingView.visibility = View.VISIBLE
+        } catch (_: SecurityException) {
+            nowPlayingView.visibility = View.GONE
+        } catch (_: Exception) {
+            nowPlayingView.visibility = View.GONE
+        }
     }
 
     /** Show whole-device network throughput using Android's cumulative traffic counters. */
