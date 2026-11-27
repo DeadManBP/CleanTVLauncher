@@ -14,8 +14,10 @@ import android.provider.Settings
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 /** Right-side translucent quick panel. The launcher remains visible behind it. */
@@ -40,12 +42,6 @@ class ControlCenterActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP
             setPadding(dp(26), dp(26), dp(26), dp(22))
-            background = GradientDrawable().apply {
-                setColor(panel)
-                cornerRadii = floatArrayOf(dp(20).toFloat(), dp(20).toFloat(), 0f, 0f, 0f, 0f, dp(20).toFloat(), dp(20).toFloat())
-                setStroke(dp(1), Color.rgb(68, 45, 53))
-            }
-            elevation = dp(18).toFloat()
         }
 
         side.addView(TextView(this).apply {
@@ -85,9 +81,10 @@ class ControlCenterActivity : Activity() {
         side.addView(networkStatusView)
 
         addSection(side, "INPUT")
-        side.addView(actionButton("XBOX  /  HDMI 1", "Switch directly to the Xbox input") {
+        val xboxButton = actionButton("XBOX  /  HDMI 1", "Switch directly to the Xbox input") {
             launchXbox()
-        })
+        }
+        side.addView(xboxButton)
         addAvailableTvInputs(side)
         addSection(side, "TV CONTROLS")
         side.addView(actionButton("NETWORK", "Wi-Fi and network connections") {
@@ -116,10 +113,24 @@ class ControlCenterActivity : Activity() {
             setPadding(0, dp(16), 0, 0)
         })
 
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            isSmoothScrollingEnabled = true
+            clipToPadding = false
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+            background = GradientDrawable().apply {
+                setColor(panel)
+                cornerRadii = floatArrayOf(dp(20).toFloat(), dp(20).toFloat(), 0f, 0f, 0f, 0f, dp(20).toFloat(), dp(20).toFloat())
+                setStroke(dp(1), Color.rgb(68, 45, 53))
+            }
+            elevation = dp(18).toFloat()
+            addView(side, ScrollView.LayoutParams(ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT))
+        }
         val width = minOf(dp(430), (resources.displayMetrics.widthPixels * 0.43f).toInt())
-        scrim.addView(side, FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END))
+        scrim.addView(scroll, FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END))
         setContentView(scrim)
-        side.post { side.getChildAt(4)?.requestFocus() }
+        xboxButton.post { xboxButton.requestFocus() }
     }
 
     override fun onResume() {
