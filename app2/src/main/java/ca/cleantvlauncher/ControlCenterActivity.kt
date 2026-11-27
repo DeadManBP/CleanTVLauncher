@@ -7,6 +7,8 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -22,6 +24,7 @@ class ControlCenterActivity : Activity() {
     private val accent = Color.rgb(220, 50, 68)
     private val panel = Color.rgb(18, 22, 30)
     private val muted = Color.rgb(157, 167, 181)
+    private var networkStatusView: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,8 +66,23 @@ class ControlCenterActivity : Activity() {
             text = "Fast access. No menu diving."
             textSize = 13f
             setTextColor(muted)
-            setPadding(0, 0, 0, dp(17))
+            setPadding(0, 0, 0, dp(10))
         })
+        networkStatusView = TextView(this).apply {
+            textSize = 13f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(Color.rgb(130, 190, 150))
+            setPadding(dp(12), dp(9), dp(12), dp(9))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                setColor(Color.rgb(27, 39, 38))
+                setStroke(dp(1), Color.rgb(55, 82, 68))
+            }
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(38)).apply {
+                bottomMargin = dp(8)
+            }
+        }
+        side.addView(networkStatusView)
 
         addSection(side, "INPUT")
         side.addView(actionButton("XBOX  /  HDMI 1", "Switch directly to the Xbox input") {
@@ -102,6 +120,49 @@ class ControlCenterActivity : Activity() {
         scrim.addView(side, FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.END))
         setContentView(scrim)
         side.post { side.getChildAt(4)?.requestFocus() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshNetworkStatus()
+    }
+
+    private fun refreshNetworkStatus() {
+        val manager = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager
+        var connected = false
+        var hasInternet = false
+        var transport = "NETWORK"
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                val network = manager?.activeNetwork
+                val capabilities = network?.let { manager.getNetworkCapabilities(it) }
+                connected = capabilities != null
+                hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                transport = when {
+                    capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> "WI-FI"
+                    capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true -> "ETHERNET"
+                    capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> "MOBILE DATA"
+                    else -> "NETWORK"
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                connected = manager?.activeNetworkInfo?.isConnected == true
+                hasInternet = connected
+            }
+        } catch (_: Exception) {
+            connected = false
+            hasInternet = false
+        }
+
+        networkStatusView?.apply {
+            text = when {
+                hasInternet -> "●  INTERNET CONNECTED  ·  $transport"
+                connected -> "●  LOCAL NETWORK ONLY  ·  NO INTERNET"
+                else -> "●  OFFLINE  ·  NO NETWORK CONNECTION"
+            }
+            setTextColor(if (hasInternet) Color.rgb(130, 190, 150) else Color.rgb(235, 165, 105))
+        }
     }
 
     private fun addSection(root: LinearLayout, title: String) {
