@@ -127,9 +127,9 @@ class SystemInformationActivity : Activity() {
             isFocusable = true
             isFocusableInTouchMode = true
             descendantFocusability = android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
-            addView(root, ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.WRAP_CONTENT
+            addView(root, android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             ))
             setBackgroundColor(Color.rgb(11, 13, 18))
         }
