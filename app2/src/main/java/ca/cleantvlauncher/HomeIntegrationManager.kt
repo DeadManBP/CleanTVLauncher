@@ -17,8 +17,7 @@ object HomeIntegrationManager {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = activity.getSystemService(RoleManager::class.java)
             if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                return roleManager.getRoleHolders(RoleManager.ROLE_HOME)
-                    .contains(activity.packageName)
+                return roleManager.isRoleHeld(RoleManager.ROLE_HOME)
             }
         }
 
