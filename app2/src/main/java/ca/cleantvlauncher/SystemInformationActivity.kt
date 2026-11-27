@@ -121,11 +121,20 @@ class SystemInformationActivity : Activity() {
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
-            isFocusable = false
-            addView(root)
+            isSmoothScrollingEnabled = true
+            clipToPadding = false
+            overScrollMode = ScrollView.OVER_SCROLL_IF_CONTENT_SCROLLS
+            isFocusable = true
+            isFocusableInTouchMode = true
+            descendantFocusability = android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
+            addView(root, ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT
+            ))
             setBackgroundColor(Color.rgb(11, 13, 18))
         }
         setContentView(scroll)
+        scroll.requestFocus()
     }
 
     private fun section(root: LinearLayout, title: String) {
