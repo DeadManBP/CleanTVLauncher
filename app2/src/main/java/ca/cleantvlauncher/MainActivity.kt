@@ -19,6 +19,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.net.TrafficStats
 import android.provider.Settings
 import android.util.TypedValue
 import android.view.KeyEvent
@@ -96,6 +97,10 @@ class MainActivity : Activity() {
     private lateinit var weatherTemp: TextView
     private lateinit var weatherCondition: TextView
     private lateinit var weatherHighLow: TextView
+    private lateinit var networkSpeed: TextView
+    private var lastRxBytes = TrafficStats.getTotalRxBytes()
+    private var lastTxBytes = TrafficStats.getTotalTxBytes()
+    private var lastNetworkSampleAt = SystemClock.elapsedRealtime()
     // Guard against the same app being launched twice from two handlers
     // firing for one centre press (tile key handler + tile click + Activity).
     private var lastLaunchAt = 0L
@@ -106,6 +111,12 @@ class MainActivity : Activity() {
         override fun run() {
             applyClockAndDateOptions()
             clockHandler.postDelayed(this, 30_000)
+        }
+    }
+    private val networkTick = object : Runnable {
+        override fun run() {
+            refreshNetworkSpeed()
+            clockHandler.postDelayed(this, 2000)
         }
     }
     private val weatherTick = object : Runnable {
@@ -147,17 +158,17 @@ class MainActivity : Activity() {
         heroCard.visibility = if (prefs.getBoolean("hero_visible", true)) View.VISIBLE else View.GONE
         val heroSize = prefs.getString("hero_size", "standard") ?: "standard"
         val (widthDp, heightDp) = when (heroSize) {
-            "compact" -> 420 to 150
-            "large" -> 620 to 210
-            else -> 520 to 180
+            "compact" -> 300 to 150
+            "large" -> 380 to 190
+            else -> 340 to 170
         }
         heroCard.layoutParams = (heroCard.layoutParams as android.widget.RelativeLayout.LayoutParams).apply {
             width = dp(widthDp)
             height = dp(heightDp)
         }
         heroBanner.layoutParams = (heroBanner.layoutParams as LinearLayout.LayoutParams).apply {
-            width = dp(widthDp - 60)
-            height = dp(heightDp - 68)
+            width = dp(widthDp - 44)
+            height = dp(heightDp - 62)
         }
         positionDockConsistently()
     }
@@ -185,6 +196,7 @@ class MainActivity : Activity() {
         weatherTemp = findViewById(R.id.weather_temp)
         weatherCondition = findViewById(R.id.weather_condition)
         weatherHighLow = findViewById(R.id.weather_highlow)
+        networkSpeed = findViewById(R.id.network_speed)
         // Render the last successful result immediately; networking refreshes it in the background.
         WeatherCache.load(this)?.let { cached ->
             weatherIcon.text = cached.icon
@@ -211,6 +223,7 @@ class MainActivity : Activity() {
         positionDockConsistently()
         clockHandler.post(clockTick)
         clockHandler.post(weatherTick)
+        clockHandler.post(networkTick)
     }
 
     /** Single launch path, with a 500 ms guard against double-firing. */
@@ -248,6 +261,30 @@ class MainActivity : Activity() {
         // Refresh in case apps changed while we were away.
         loadDock()
         loadWallpaper()
+    }
+
+    /** Show whole-device network throughput using Android's cumulative traffic counters. */
+    private fun refreshNetworkSpeed() {
+        val rx = TrafficStats.getTotalRxBytes()
+        val tx = TrafficStats.getTotalTxBytes()
+        val now = SystemClock.elapsedRealtime()
+        val elapsedSeconds = ((now - lastNetworkSampleAt).coerceAtLeast(1L)) / 1000.0
+        if (rx < 0L || tx < 0L || lastRxBytes < 0L || lastTxBytes < 0L) {
+            networkSpeed.text = "NETWORK  ·  SPEED UNAVAILABLE"
+        } else {
+            val down = ((rx - lastRxBytes).coerceAtLeast(0L) / elapsedSeconds).toLong()
+            val up = ((tx - lastTxBytes).coerceAtLeast(0L) / elapsedSeconds).toLong()
+            networkSpeed.text = "↓ ${formatRate(down)}   ↑ ${formatRate(up)}"
+        }
+        lastRxBytes = rx
+        lastTxBytes = tx
+        lastNetworkSampleAt = now
+    }
+
+    private fun formatRate(bytesPerSecond: Long): String = when {
+        bytesPerSecond >= 1000000L -> String.format(Locale.getDefault(), "%.1f MB/s", bytesPerSecond / 1000000.0)
+        bytesPerSecond >= 1000L -> String.format(Locale.getDefault(), "%.0f KB/s", bytesPerSecond / 1000.0)
+        else -> "$bytesPerSecond B/s"
     }
 
     /** Fetch Brockville's current conditions and forecast from Environment and Climate Change Canada. */
@@ -771,6 +808,7 @@ class MainActivity : Activity() {
         super.onDestroy()
         clockHandler.removeCallbacks(clockTick)
         clockHandler.removeCallbacks(weatherTick)
+        clockHandler.removeCallbacks(networkTick)
     }
 
     override fun onBackPressed() {
