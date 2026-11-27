@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
 import android.media.tv.TvContract
 import android.media.tv.TvInputManager
 import android.net.ConnectivityManager
@@ -27,6 +28,8 @@ class ControlCenterActivity : Activity() {
     private val panel = Color.rgb(18, 22, 30)
     private val muted = Color.rgb(157, 167, 181)
     private var networkStatusView: TextView? = null
+    private var volumeStatusView: TextView? = null
+    private var audioManager: AudioManager? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +82,32 @@ class ControlCenterActivity : Activity() {
             }
         }
         side.addView(networkStatusView)
+
+        audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager
+        addSection(side, "AUDIO")
+        volumeStatusView = TextView(this).apply {
+            textSize = 13f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), 0, dp(12), 0)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                setColor(Color.rgb(29, 35, 45))
+                setStroke(dp(1), Color.rgb(55, 64, 78))
+            }
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(38)).apply { bottomMargin = dp(7) }
+        }
+        side.addView(volumeStatusView)
+        val volumeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)).apply { bottomMargin = dp(9) }
+        }
+        volumeRow.addView(volumeButton("VOL −") { adjustVolume(-1) }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { marginEnd = dp(6) })
+        volumeRow.addView(volumeButton("MUTE") { toggleMute() }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { marginEnd = dp(6) })
+        volumeRow.addView(volumeButton("VOL +") { adjustVolume(1) }, LinearLayout.LayoutParams(0, dp(44), 1f))
+        side.addView(volumeRow)
 
         addSection(side, "INPUT")
         val xboxButton = actionButton("XBOX  /  HDMI 1", "Switch directly to the Xbox input") {
@@ -136,6 +165,75 @@ class ControlCenterActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refreshNetworkStatus()
+        refreshVolumeStatus()
+    }
+
+
+    private fun volumeButton(label: String, action: () -> Unit): TextView =
+        TextView(this).apply {
+            text = label
+            textSize = 14f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            isFocusable = true
+            isFocusableInTouchMode = true
+            background = surface(false)
+            setOnFocusChangeListener { view, focused ->
+                view.background = surface(focused)
+                view.scaleX = if (focused) 1.04f else 1f
+                view.scaleY = if (focused) 1.04f else 1f
+            }
+            setOnClickListener { action() }
+        }
+
+    private fun adjustVolume(direction: Int) {
+        val manager = audioManager ?: return
+        try {
+            if (manager.isVolumeFixed) {
+                volumeStatusView?.text = "VOLUME IS CONTROLLED BY THE TV"
+                return
+            }
+            val current = manager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val maximum = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            manager.setStreamVolume(AudioManager.STREAM_MUSIC, (current + direction).coerceIn(0, maximum), AudioManager.FLAG_SHOW_UI)
+            refreshVolumeStatus()
+        } catch (_: SecurityException) {
+            volumeStatusView?.text = "USE THE TV REMOTE TO CHANGE VOLUME"
+        } catch (_: Exception) {
+            volumeStatusView?.text = "VOLUME CONTROL NOT AVAILABLE"
+        }
+    }
+
+    private fun toggleMute() {
+        val manager = audioManager ?: return
+        try {
+            if (manager.isVolumeFixed) {
+                volumeStatusView?.text = "MUTE IS CONTROLLED BY THE TV"
+                return
+            }
+            val current = manager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val maximum = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val target = if (current > 0) 0 else (maximum / 2).coerceAtLeast(1)
+            manager.setStreamVolume(AudioManager.STREAM_MUSIC, target, AudioManager.FLAG_SHOW_UI)
+            refreshVolumeStatus()
+        } catch (_: SecurityException) {
+            volumeStatusView?.text = "MUTE IS CONTROLLED BY THE TV"
+        } catch (_: Exception) {
+            volumeStatusView?.text = "MUTE CONTROL NOT AVAILABLE"
+        }
+    }
+
+    private fun refreshVolumeStatus() {
+        val manager = audioManager ?: return
+        volumeStatusView?.text = try {
+            val current = manager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val maximum = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+            if (manager.isVolumeFixed) "TV VOLUME  ·  CONTROLLED BY TV REMOTE"
+            else "SYSTEM VOLUME  ·  $current / $maximum  (${current * 100 / maximum}%)"
+        } catch (_: Exception) {
+            "SYSTEM VOLUME  ·  STATUS UNAVAILABLE"
+        }
     }
 
     private fun refreshNetworkStatus() {
